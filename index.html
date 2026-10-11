@@ -12,6 +12,7 @@
 <title>Lunario delle Sagre</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,600..900&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
 <style>
 /* Layout: one column almanac. Each event row starts with a tear-off calendar leaf (day + weekday); type is a coloured edge on the leaf. */
@@ -51,8 +52,8 @@ header h1 span{color:var(--accent)}
 header .sub{margin:4px 0 0;color:var(--muted);font-size:.92rem}
 .addbtn{flex:none;min-height:46px;padding:0 16px;border-radius:12px;border:2px solid var(--line);background:var(--surface);font-weight:700}
 
-.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:var(--surface-2);padding:5px;border-radius:14px;margin:12px 0}
-.tabs button{min-height:46px;border:0;border-radius:10px;background:transparent;font-weight:700;color:var(--ink-2)}
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;background:var(--surface-2);padding:5px;border-radius:14px;margin:12px 0}
+.tabs button{min-height:46px;border:0;border-radius:10px;background:transparent;font-weight:700;color:var(--ink-2);font-size:.92rem;padding:0 2px}
 .tabs button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
 
 .filters{display:flex;flex-direction:column;gap:8px}
@@ -91,7 +92,7 @@ h3.sec small{font-family:var(--f-body);font-weight:400;font-size:.85rem;color:va
 .note{font-size:.88rem;color:var(--muted);margin:24px 0 0;line-height:1.5}
 
 /* sheet */
-.sheet-wrap{position:fixed;inset:0;z-index:30;display:flex;align-items:flex-end;justify-content:center}
+.sheet-wrap{position:fixed;inset:0;z-index:2000;display:flex;align-items:flex-end;justify-content:center}
 .backdrop{position:absolute;inset:0;background:rgba(10,15,12,.5)}
 .sheet{position:relative;background:var(--bg);width:100%;max-width:640px;max-height:92%;overflow:auto;border-radius:22px 22px 0 0;padding:8px 16px calc(24px + env(safe-area-inset-bottom,0px))}
 .grab{width:44px;height:5px;border-radius:5px;background:var(--line);margin:4px auto 12px}
@@ -114,7 +115,14 @@ h3.sec small{font-family:var(--f-body);font-weight:400;font-size:.85rem;color:va
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .check{display:flex;gap:10px;align-items:center;min-height:48px;font-weight:700;margin-bottom:10px}
 .check input{width:22px;height:22px;accent-color:var(--accent)}
-.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:12px;font-weight:700;z-index:40;max-width:calc(100% - 32px);text-align:center}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:12px;font-weight:700;z-index:2100;max-width:calc(100% - 32px);text-align:center}
+.radar-ctl{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.map{position:relative;z-index:0;height:min(55vh,420px);border-radius:var(--r);border:1px solid var(--line);margin-top:12px;overflow:hidden;background:var(--surface-2)}
+.leaflet-container{font-family:var(--f-body)}
+.pop{display:flex;flex-direction:column;gap:6px;min-width:180px}
+.pop button{text-align:left;border:1px solid #D6DCD0;background:#fff;border-radius:8px;padding:8px 10px;font-weight:700;color:#1C2620;display:flex;flex-direction:column;gap:2px}
+.pop small{font-weight:400;color:#47534B}
+.dist{font-weight:700;color:var(--ink)}
 @media (prefers-reduced-motion:no-preference){.sheet{animation:up .2s ease-out}@keyframes up{from{transform:translateY(30px);opacity:.6}to{transform:none;opacity:1}}}
 </style>
 </head>
@@ -127,6 +135,7 @@ h3.sec small{font-family:var(--f-body);font-weight:400;font-size:.85rem;color:va
   <div class="tabs" role="group" aria-label="Vista">
     <button data-act="tab" data-v="prossimi">Prossimi</button>
     <button data-act="tab" data-v="calendario">Calendario</button>
+    <button data-act="tab" data-v="radar">Radar</button>
     <button data-act="tab" data-v="preferiti">Preferiti</button>
   </div>
   <div class="filters">
@@ -139,7 +148,9 @@ h3.sec small{font-family:var(--f-body);font-weight:400;font-size:.85rem;color:va
 <div class="sheet-wrap" id="sheetWrap" hidden><div class="backdrop" data-act="close"></div><section class="sheet" role="dialog" aria-modal="true"><div class="grab"></div><div id="sheetBody"></div></section></div>
 <div class="toast" id="toast" role="status" hidden></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="eventi.js"></script>
+<script src="luoghi.js"></script>
 <script>
 (function(){
 "use strict";
@@ -223,7 +234,7 @@ function frange(s,e){
   const sameM=s.getMonth()===e.getMonth();
   return GS[s.getDay()]+' '+s.getDate()+(sameM?'':' '+MS[s.getMonth()])+' – '+GS[e.getDay()]+' '+e.getDate()+' '+MS[e.getMonth()]+' '+e.getFullYear();
 }
-function row(o){
+function row(o,dist){
   const ev=o.ev,fav=st.fav.includes(ev.id),days=Math.round((o.e-o.s)/DAY)+1;
   const ongoing=o.s<TODAY&&o.e>=TODAY;
   const leaf=ongoing?`<b>${o.e.getDate()}</b><span>fino al</span><em>${MS[o.e.getMonth()]}</em>`
@@ -232,7 +243,7 @@ function row(o){
     <span class="leaf">${leaf}</span>
     <span class="evb"><span class="evt">${fav?'<span class="star" aria-label="Preferito">★</span>':''}<span>${esc(ev.n)}</span></span>
     <span class="evs">${esc(ev.c)}</span>
-    <span class="evm"><span class="prov">${esc(ev.p)}</span><span class="type">${TIPI[ev.t]}</span>${exact(ev)?'':'<span class="approx">· date previste</span>'}${ev.mine?'<span>· tuo</span>':''}</span></span></button>`;
+    <span class="evm">${dist?`<span class="dist">${dist}</span>`:''}<span class="prov">${esc(ev.p)}</span><span class="type">${TIPI[ev.t]}</span>${exact(ev)?'':'<span class="approx">· date previste</span>'}${ev.mine?'<span>· tuo</span>':''}</span></span></button>`;
 }
 
 /* ---------- views ---------- */
@@ -263,6 +274,70 @@ function vPreferiti(list){
   return favs.length?`<h3 class="sec">I tuoi preferiti <small>in ordine di data</small></h3><div class="list">${favs.map(row).join('')}</div>`
    :`<div class="empty">Nessun preferito ancora.<br>Apri un evento e tocca <b>★ Salva nei preferiti</b>.</div>`;
 }
+
+/* ---------- radar ---------- */
+const PERIODI={oggi:'Oggi',weekend:'Weekend',sette:'7 giorni',trenta:'30 giorni'};
+const RAGGI=[10,25,50,100,0];
+let MAP=null,mapView=null;
+function periodRange(k){
+  if(k==='oggi')return {s:TODAY,e:TODAY};
+  if(k==='sette')return {s:TODAY,e:add(TODAY,6)};
+  if(k==='trenta')return {s:TODAY,e:add(TODAY,29)};
+  return weekendRange();
+}
+function km(a,b){const R=6371,r=x=>x*Math.PI/180,dl=r(b[0]-a[0]),dn=r(b[1]-a[1]);const h=Math.sin(dl/2)**2+Math.cos(r(a[0]))*Math.cos(r(b[0]))*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
+const placeOf=ev=>LUOGHI[ev.c+'|'+ev.p]||null;
+function centro(){return st.centro||{ll:[45.407,11.876],nome:'Padova'}}
+function radarData(list){
+  const rng=periodRange(st.periodo||'weekend'),c=centro(),R=st.raggio===undefined?25:st.raggio;
+  const os=occBetween(rng.s,rng.e,list).map(o=>{const ll=placeOf(o.ev);return ll?Object.assign(o,{ll,km:km(c.ll,ll)}):null}).filter(Boolean);
+  const vis=R?os.filter(o=>o.km<=R):os;
+  vis.sort((a,b)=>a.km-b.km||a.s-b.s);
+  return {rng,c,R,vis,senza:list.filter(ev=>!placeOf(ev)&&ev.mine).length};
+}
+function vRadar(list){
+  const d=radarData(list);
+  const per=st.periodo||'weekend';
+  const lab=+d.rng.s===+d.rng.e?fdate(d.rng.s):d.rng.s.getDate()+' '+MS[d.rng.s.getMonth()]+' – '+d.rng.e.getDate()+' '+MS[d.rng.e.getMonth()];
+  return `<div class="radar-ctl">
+    <button class="btn primary" data-act="geo">Vicino a me</button>
+    <p class="note" style="margin:0">Centro: <b>${esc(d.c.nome)}</b>. Tocca la mappa per spostarlo.</p>
+    <div class="scroller" role="group" aria-label="Distanza">${RAGGI.map(r=>`<button class="chip" data-act="raggio" data-v="${r}" aria-pressed="${d.R===r}">${r?r+' km':'Tutti'}</button>`).join('')}</div>
+    <div class="scroller" role="group" aria-label="Quando">${Object.keys(PERIODI).map(k=>`<button class="chip" data-act="periodo" data-v="${k}" aria-pressed="${per===k}">${PERIODI[k]}</button>`).join('')}</div>
+  </div>
+  <div id="map" class="map" role="region" aria-label="Mappa degli eventi"></div>
+  <h3 class="sec">${d.vis.length} ${d.vis.length===1?'evento':'eventi'} ${d.R?'entro '+d.R+' km':''} <small>${lab}</small></h3>
+  ${d.vis.length?`<div class="list">${d.vis.map(o=>row(o,Math.round(o.km)+' km')).join('')}</div>`:`<div class="empty">Nessun evento in questa zona nel periodo scelto. Prova ad allargare la distanza o il periodo.</div>`}
+  ${d.senza?`<p class="note">I tuoi eventi aggiunti a mano non compaiono sul radar perché non hanno una posizione.</p>`:''}`;
+}
+function cssVar(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()||'#C2410C'}
+function initMap(list){
+  if(MAP){MAP.remove();MAP=null}
+  const el=document.getElementById('map');if(!el)return;
+  if(!window.L){el.innerHTML='<p class="note" style="padding:16px">La mappa ha bisogno di internet. Riprova quando sei connesso.</p>';return}
+  const d=radarData(list);
+  const zoom={10:11,25:10,50:9,100:8,0:8}[d.R];
+  MAP=L.map(el,{scrollWheelZoom:false}).setView(mapView?mapView.c:d.c.ll,mapView?mapView.z:zoom);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'&copy; OpenStreetMap'}).addTo(MAP);
+  if(d.R)L.circle(d.c.ll,{radius:d.R*1000,color:cssVar('--accent'),weight:2,fillOpacity:.06}).addTo(MAP);
+  L.circleMarker(d.c.ll,{radius:7,color:'#ffffff',weight:3,fillColor:'#1C2620',fillOpacity:1}).addTo(MAP).bindTooltip(d.c.nome);
+  const per={};d.vis.forEach(o=>{const k=o.ll.join(',');(per[k]=per[k]||[]).push(o)});
+  Object.values(per).forEach(g=>{
+    const t=g[0].ev.t;
+    const m=L.circleMarker(g[0].ll,{radius:g.length>1?11:9,color:'#ffffff',weight:2,fillColor:cssVar('--t-'+t),fillOpacity:1}).addTo(MAP);
+    m.bindPopup(`<div class="pop"><b>${esc(g[0].ev.c)}</b> · ${Math.round(g[0].km)} km${g.map(o=>`<button data-open="${esc(o.ev.id)}" data-s="${iso(o.s)}">${esc(o.ev.n)}<small>${frange(o.s,o.e)}</small></button>`).join('')}</div>`);
+  });
+  MAP.on('popupopen',e=>{e.popup.getElement().querySelectorAll('[data-open]').forEach(b=>b.addEventListener('click',()=>{MAP.closePopup();openEvent(b.dataset.open,b.dataset.s)}))});
+  MAP.on('moveend',()=>{mapView={c:MAP.getCenter(),z:MAP.getZoom()}});
+  MAP.on('click',e=>{st.centro={ll:[+e.latlng.lat.toFixed(4),+e.latlng.lng.toFixed(4)],nome:'punto scelto sulla mappa'};mapView=null;save();render()});
+}
+function geo(){
+  if(!navigator.geolocation){toast('Questo telefono non dà la posizione: tocca la mappa');return}
+  toast('Cerco la tua posizione…');
+  navigator.geolocation.getCurrentPosition(p=>{st.centro={ll:[+p.coords.latitude.toFixed(4),+p.coords.longitude.toFixed(4)],nome:'la tua posizione'};mapView=null;save();render();toast('Ecco cosa c\'è vicino a te')},
+    ()=>toast('Posizione non disponibile: tocca la mappa per scegliere il centro'),{enableHighAccuracy:false,timeout:12000,maximumAge:300000});
+}
+
 function render(){
   EV=allEvents();
   const list=EV.filter(passes);
@@ -270,8 +345,10 @@ function render(){
   document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===st.tab));
   $('#provChips').innerHTML=[['tutte','Tutto il Veneto']].concat(REGIONI.Veneto.map(p=>[p,PROVINCE[p]])).map(([k,l])=>`<button class="chip" data-act="prov" data-v="${k}" aria-pressed="${st.prov===k}">${l}</button>`).join('');
   $('#typeChips').innerHTML=Object.keys(TIPIP).map(k=>`<button class="chip" data-act="tipo" data-v="${k}" aria-pressed="${st.tipi.includes(k)}"><i style="background:var(--t-${k})"></i>${TIPIP[k]}</button>`).join('');
-  $('#app').innerHTML=(st.tab==='calendario'?vCalendario(list):st.tab==='preferiti'?vPreferiti(EV):vProssimi(list))
-   +`<p class="note">Le date sono calcolate dal periodo in cui l'evento si ripete di solito: controlla sempre il programma ufficiale prima di partire. Gli eventi segnati «date previste» possono spostarsi di qualche giorno.</p>`;
+  if(st.tab!=='radar'&&MAP){MAP.remove();MAP=null}
+  $('#app').innerHTML=(st.tab==='calendario'?vCalendario(list):st.tab==='preferiti'?vPreferiti(EV):st.tab==='radar'?vRadar(list):vProssimi(list))
+   +`<p class="note">Le date sono calcolate dal periodo in cui l'evento si ripete di solito: controlla sempre il programma ufficiale prima di partire. Gli eventi segnati «date previste» possono spostarsi di qualche giorno.${st.tab==='radar'?' Sulla mappa ogni evento è nel centro del paese, non all\'indirizzo esatto.':''}</p>`;
+  if(st.tab==='radar')initMap(list);
 }
 
 /* ---------- sheet ---------- */
@@ -325,6 +402,9 @@ document.addEventListener('click',e=>{
   case 'tipo':st.tipi=st.tipi.includes(v)?st.tipi.filter(x=>x!==v):st.tipi.concat(v);save();render();break;
   case 'mese':{const m=st.mese?parseIso(st.mese+'-01'):new Date(TODAY.getFullYear(),TODAY.getMonth(),1);const n=new Date(m.getFullYear(),m.getMonth()+(+v),1);st.mese=n.getFullYear()+'-'+pad(n.getMonth()+1);save();render();break}
   case 'open':openEvent(id,b.dataset.s);break;
+  case 'geo':geo();break;
+  case 'raggio':st.raggio=+v;mapView=null;save();render();break;
+  case 'periodo':st.periodo=v;save();render();break;
   case 'close':closeSheet();break;
   case 'fav':{const on=st.fav.includes(id);st.fav=on?st.fav.filter(x=>x!==id):st.fav.concat(id);save();render();openEvent(id);toast(on?'Tolto dai preferiti':'Salvato nei preferiti');break}
   case 'add':evForm(null);break;
