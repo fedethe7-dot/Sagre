@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#C2410C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Sagre">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>Lunario delle Sagre</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,600..900&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Layout: one column almanac. Each event row starts with a tear-off calendar leaf (day + weekday); type is a coloured edge on the leaf. */
+:root{
+  --bg:#F3F5F1; --surface:#FFFFFF; --surface-2:#E8ECE4; --line:#D6DCD0;
+  --ink:#1C2620; --ink-2:#47534B; --muted:#6B776F;
+  --accent:#C2410C; --accent-ink:#FFFFFF; --accent-soft:#FBE6D9;
+  --t-S:#C2410C; --t-F:#7C3AED; --t-M:#0F766E; --t-G:#1D4ED8;
+  --star:#D99A00;
+  --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Atkinson Hyperlegible","Segoe UI",Verdana,system-ui,sans-serif;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141A16; --surface:#1C241F; --surface-2:#25302A; --line:#34413A;
+  --ink:#EEF2EC; --ink-2:#C3CCC5; --muted:#95A299;
+  --accent:#F08A4B; --accent-ink:#2A1206; --accent-soft:#3A2416;
+  --t-S:#F08A4B; --t-F:#B794F4; --t-M:#4FD1C5; --t-G:#7FA7F5; --star:#F2C14E; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141A16; --surface:#1C241F; --surface-2:#25302A; --line:#34413A;
+  --ink:#EEF2EC; --ink-2:#C3CCC5; --muted:#95A299;
+  --accent:#F08A4B; --accent-ink:#2A1206; --accent-soft:#3A2416;
+  --t-S:#F08A4B; --t-F:#B794F4; --t-M:#4FD1C5; --t-G:#7FA7F5; --star:#F2C14E; color-scheme:dark}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:17px;line-height:1.45;padding:0 16px}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+[hidden]{display:none!important}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.wrap{max-width:720px;margin:0 auto}
+
+header.top{padding-block:16px 6px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+header h1{font-family:var(--f-display);font-weight:900;font-stretch:115%;font-size:1.6rem;line-height:1.05;margin:0;letter-spacing:-.01em}
+header h1 span{color:var(--accent)}
+header .sub{margin:4px 0 0;color:var(--muted);font-size:.92rem}
+.addbtn{flex:none;min-height:46px;padding:0 16px;border-radius:12px;border:2px solid var(--line);background:var(--surface);font-weight:700}
+
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:var(--surface-2);padding:5px;border-radius:14px;margin:12px 0}
+.tabs button{min-height:46px;border:0;border-radius:10px;background:transparent;font-weight:700;color:var(--ink-2)}
+.tabs button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+
+.filters{display:flex;flex-direction:column;gap:8px}
+.scroller{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px}
+.scroller::-webkit-scrollbar{display:none}
+.chip{flex:none;min-height:40px;padding:0 14px;border-radius:99px;border:2px solid var(--line);background:var(--surface);font-weight:700;font-size:.92rem;color:var(--ink-2);white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+.chip[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--bg)}
+.chip i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.search{position:relative}
+.search input{width:100%;min-height:46px;border-radius:12px;border:2px solid var(--line);background:var(--surface);padding:0 14px 0 40px}
+.search input:focus{outline:none;border-color:var(--accent)}
+.search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:20px;height:20px;color:var(--muted)}
+
+main{padding-bottom:calc(40px + env(safe-area-inset-bottom,0px))}
+.monthnav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:14px 0 6px}
+.monthnav h2{font-family:var(--f-display);font-weight:800;font-stretch:110%;font-size:1.35rem;margin:0;text-transform:capitalize}
+.navbtn{width:46px;height:46px;border-radius:12px;border:2px solid var(--line);background:var(--surface);font-size:1.3rem;font-weight:700}
+h3.sec{font-family:var(--f-display);font-weight:800;font-stretch:105%;font-size:1.05rem;margin:22px 0 10px;display:flex;align-items:baseline;gap:8px}
+h3.sec small{font-family:var(--f-body);font-weight:400;font-size:.85rem;color:var(--muted);text-transform:none}
+
+.list{display:flex;flex-direction:column;gap:10px}
+.ev{display:flex;gap:12px;align-items:stretch;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px 10px 10px}
+.leaf{flex:none;width:62px;border-radius:9px;background:var(--surface-2);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 2px;border-top:6px solid var(--tc,var(--accent));font-variant-numeric:tabular-nums;text-align:center}
+.leaf b{font-family:var(--f-display);font-weight:900;font-size:1.55rem;line-height:1}
+.leaf span{font-size:.72rem;font-weight:700;color:var(--ink-2);text-transform:uppercase;letter-spacing:.04em;margin-top:2px}
+.leaf em{font-style:normal;font-size:.7rem;color:var(--muted)}
+.evb{min-width:0;flex:1;display:flex;flex-direction:column;gap:3px;justify-content:center}
+.evt{font-weight:700;line-height:1.25;display:flex;gap:6px;align-items:flex-start}
+.evt .star{color:var(--star);flex:none}
+.evs{color:var(--ink-2);font-size:.92rem;line-height:1.3}
+.evm{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:.8rem;color:var(--muted)}
+.prov{font-weight:700;font-size:.75rem;letter-spacing:.05em;padding:1px 7px;border-radius:6px;background:var(--surface-2);color:var(--ink-2)}
+.type{font-weight:700;color:var(--tc)}
+.approx{font-style:italic}
+.empty{border:2px dashed var(--line);border-radius:var(--r);padding:22px;text-align:center;color:var(--muted);margin-top:14px}
+.note{font-size:.88rem;color:var(--muted);margin:24px 0 0;line-height:1.5}
+
+/* sheet */
+.sheet-wrap{position:fixed;inset:0;z-index:30;display:flex;align-items:flex-end;justify-content:center}
+.backdrop{position:absolute;inset:0;background:rgba(10,15,12,.5)}
+.sheet{position:relative;background:var(--bg);width:100%;max-width:640px;max-height:92%;overflow:auto;border-radius:22px 22px 0 0;padding:8px 16px calc(24px + env(safe-area-inset-bottom,0px))}
+.grab{width:44px;height:5px;border-radius:5px;background:var(--line);margin:4px auto 12px}
+.sheet h2{font-family:var(--f-display);font-weight:900;font-stretch:108%;font-size:1.45rem;line-height:1.15;margin:0 0 6px;text-wrap:balance}
+.sheet .place{color:var(--ink-2);margin:0 0 14px}
+.when{background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--tc);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+.when .lab{font-size:.78rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.when .big{font-family:var(--f-display);font-weight:800;font-size:1.2rem;line-height:1.2}
+.when .s{color:var(--ink-2);font-size:.92rem}
+.desc{margin:0 0 16px}
+.actions{display:flex;flex-direction:column;gap:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:52px;padding:0 18px;border-radius:13px;border:2px solid var(--line);background:var(--surface);font-weight:700;text-decoration:none;color:var(--ink)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent}
+.btn.danger{color:#B3261E;border-color:currentColor;background:transparent}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.field label{font-weight:700}
+.in{min-height:52px;border:2px solid var(--line);border-radius:12px;background:var(--surface);padding:0 14px;width:100%}
+.in:focus{outline:none;border-color:var(--accent)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.check{display:flex;gap:10px;align-items:center;min-height:48px;font-weight:700;margin-bottom:10px}
+.check input{width:22px;height:22px;accent-color:var(--accent)}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:12px;font-weight:700;z-index:40;max-width:calc(100% - 32px);text-align:center}
+@media (prefers-reduced-motion:no-preference){.sheet{animation:up .2s ease-out}@keyframes up{from{transform:translateY(30px);opacity:.6}to{transform:none;opacity:1}}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div><h1>Lunario <span>delle Sagre</span></h1><p class="sub" id="sub"></p></div>
+    <button class="addbtn" data-act="add">+ Evento</button>
+  </header>
+  <div class="tabs" role="group" aria-label="Vista">
+    <button data-act="tab" data-v="prossimi">Prossimi</button>
+    <button data-act="tab" data-v="calendario">Calendario</button>
+    <button data-act="tab" data-v="preferiti">Preferiti</button>
+  </div>
+  <div class="filters">
+    <div class="scroller" id="provChips" role="group" aria-label="Provincia"></div>
+    <div class="scroller" id="typeChips" role="group" aria-label="Tipo"></div>
+    <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" type="search" placeholder="Cerca: baccalà, Arquà, palio…" autocomplete="off" aria-label="Cerca"></div>
+  </div>
+  <main id="app"></main>
+</div>
+<div class="sheet-wrap" id="sheetWrap" hidden><div class="backdrop" data-act="close"></div><section class="sheet" role="dialog" aria-modal="true"><div class="grab"></div><div id="sheetBody"></div></section></div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="eventi.js"></script>
+<script>
+(function(){
+"use strict";
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const MESI=['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+const MS=['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+const GS=['dom','lun','mar','mer','gio','ven','sab'];
+const GL=['domenica','lunedì','martedì','mercoledì','giovedì','venerdì','sabato'];
+const ORD={1:'primo',2:'secondo',3:'terzo',4:'quarto',5:'quinto','-1':'ultimo'};
+const ORDF={1:'prima',2:'seconda',3:'terza',4:'quarta',5:'quinta','-1':'ultima'};
+const TIPI={S:'Sagra',F:'Festa e ricorrenza',M:'Fiera e mercato',G:'Grande evento'};
+const TIPIP={S:'Sagre',F:'Feste e ricorrenze',M:'Fiere e mercati',G:'Grandi eventi'};
+const DAY=864e5;
+const pad=n=>String(n).padStart(2,'0');
+const d0=d=>new Date(d.getFullYear(),d.getMonth(),d.getDate());
+const add=(d,n)=>new Date(d.getFullYear(),d.getMonth(),d.getDate()+n);
+const iso=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const parseIso=s=>{const p=String(s||'').split('-');return p.length===3?new Date(+p[0],+p[1]-1,+p[2]):null};
+const TODAY=d0(new Date());
+
+/* ---------- storage ---------- */
+const K='lunario-v1';
+let st={tab:'prossimi',prov:'tutte',tipi:[],fav:[],mine:[],mese:null};
+try{Object.assign(st,JSON.parse(localStorage.getItem(K)||'{}'))}catch(e){}
+function save(){try{localStorage.setItem(K,JSON.stringify(st))}catch(e){}}
+let q='';
+
+/* ---------- date rules ---------- */
+function easter(Y){const a=Y%19,b=Math.floor(Y/100),c=Y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),mo=Math.floor((h+l-7*m+114)/31),da=((h+l-7*m+114)%31)+1;return new Date(Y,mo-1,da)}
+function nthSunday(Y,m,n){
+  if(n>0){const d=new Date(Y,m-1,1);d.setDate(1+(7-d.getDay())%7+7*(n-1));return d.getMonth()===m-1?d:null}
+  const d=new Date(Y,m,0);d.setDate(d.getDate()-d.getDay());return d;
+}
+function occ(ev,Y){
+  const r=ev.r;if(r.y==='pari'&&Y%2)return [];if(r.y==='dispari'&&!(Y%2))return [];
+  if(r.w){const [m,n,pre=2,post=0]=r.w;const s=nthSunday(Y,m,n);if(!s)return [];return [{s:add(s,-pre),e:add(s,post)}]}
+  if(r.d){const [m,g,len=1]=r.d;const s=new Date(Y,m-1,g);return [{s,e:add(s,len-1)}]}
+  if(r.e){const [off,len=1]=r.e;const s=add(easter(Y),off);return [{s,e:add(s,len-1)}]}
+  if(r.mo!==undefined){const out=[];for(let m=1;m<=12;m++){const s=nthSunday(Y,m,r.mo);if(s)out.push({s,e:s})}return out}
+  if(r.f){const s=parseIso(r.f[0]),e=parseIso(r.f[1]||r.f[0]);return s&&s.getFullYear()===Y?[{s,e}]:[]}
+  return [];
+}
+function descr(ev){
+  const r=ev.r;if(r.q)return r.q;
+  if(r.mo!==undefined)return 'ogni '+ORDF[r.mo]+' domenica del mese';
+  if(r.w){const [m,n,pre=2,post=0]=r.w;const mese=MESI[m-1];
+    if(post>=7){const k=Math.round(post/7);return 'dal '+ORD[n]+' weekend di '+mese+' per '+(k+1)+' weekend';}
+    if(pre===0&&post===0)return 'la '+ORDF[n]+' domenica di '+mese;
+    return ORD[n]+' weekend di '+mese;}
+  if(r.d){const [m,g,len=1]=r.d;if(r.x)return len===1?'ogni '+g+' '+MESI[m-1]:'dal '+g+' '+MESI[m-1]+' per '+len+' giorni';
+    const parte=g<=10?'inizio':g<=20?'metà':'fine';return len===1?'intorno al '+g+' '+MESI[m-1]:parte+' '+MESI[m-1]+(len>3?', per circa '+(len>=14?Math.round(len/7)+' settimane':len+' giorni'):'');}
+  if(r.f)return 'data segnata da te';
+  return '';
+}
+const exact=ev=>!!(ev.r.x||ev.r.f);
+
+/* ---------- data ---------- */
+function allEvents(){
+  const base=EVENTI.map(a=>({id:a[0],n:a[1],c:a[2],p:a[3],t:a[4],r:a[5],d:a[6],u:a[7]}));
+  return base.concat(st.mine.map(m=>Object.assign({mine:1},m)));
+}
+let EV=allEvents();
+function passes(ev){
+  if(st.prov!=='tutte'&&ev.p!==st.prov)return false;
+  if(st.tipi.length&&!st.tipi.includes(ev.t))return false;
+  if(q){const t=(ev.n+' '+ev.c+' '+(PROVINCE[ev.p]||'')+' '+(ev.d||'')).toLowerCase();if(!q.split(/\s+/).every(w=>t.includes(w)))return false}
+  return true;
+}
+function occBetween(from,to,list){
+  const out=[];
+  for(const ev of list){for(let Y=from.getFullYear();Y<=to.getFullYear();Y++){for(const o of occ(ev,Y)){if(o.e>=from&&o.s<=to)out.push({ev,s:o.s,e:o.e})}}}
+  return out.sort((a,b)=>a.s-b.s||a.e-b.e||a.ev.n.localeCompare(b.ev.n,'it'));
+}
+function nextOcc(ev){const o=occBetween(TODAY,add(TODAY,800),[ev]);return o[0]||null}
+
+/* ---------- formatting ---------- */
+const fdate=d=>GL[d.getDay()]+' '+d.getDate()+' '+MESI[d.getMonth()];
+function frange(s,e){
+  if(+s===+e)return fdate(s)+' '+s.getFullYear();
+  const sameM=s.getMonth()===e.getMonth();
+  return GS[s.getDay()]+' '+s.getDate()+(sameM?'':' '+MS[s.getMonth()])+' – '+GS[e.getDay()]+' '+e.getDate()+' '+MS[e.getMonth()]+' '+e.getFullYear();
+}
+function row(o){
+  const ev=o.ev,fav=st.fav.includes(ev.id),days=Math.round((o.e-o.s)/DAY)+1;
+  const ongoing=o.s<TODAY&&o.e>=TODAY;
+  const leaf=ongoing?`<b>${o.e.getDate()}</b><span>fino al</span><em>${MS[o.e.getMonth()]}</em>`
+    :`<b>${o.s.getDate()}</b><span>${GS[o.s.getDay()]}</span><em>${days>1?'→ '+o.e.getDate()+' '+MS[o.e.getMonth()]:MS[o.s.getMonth()]}</em>`;
+  return `<button class="ev" data-act="open" data-id="${esc(ev.id)}" data-s="${iso(o.s)}" style="--tc:var(--t-${ev.t})">
+    <span class="leaf">${leaf}</span>
+    <span class="evb"><span class="evt">${fav?'<span class="star" aria-label="Preferito">★</span>':''}<span>${esc(ev.n)}</span></span>
+    <span class="evs">${esc(ev.c)}</span>
+    <span class="evm"><span class="prov">${esc(ev.p)}</span><span class="type">${TIPI[ev.t]}</span>${exact(ev)?'':'<span class="approx">· date previste</span>'}${ev.mine?'<span>· tuo</span>':''}</span></span></button>`;
+}
+
+/* ---------- views ---------- */
+function weekendRange(){const g=TODAY.getDay();const fri=g===0?add(TODAY,-2):g===6?add(TODAY,-1):add(TODAY,5-g);return {s:g===0?TODAY:fri<TODAY?TODAY:fri,e:add(fri,2)}}
+function vProssimi(list){
+  const w=weekendRange();
+  const wk=occBetween(w.s,w.e,list);
+  const ids=new Set(wk.map(o=>o.ev.id+iso(o.s)));
+  const later=occBetween(add(w.e,1),add(TODAY,120),list).filter(o=>!ids.has(o.ev.id+iso(o.s)));
+  let h=`<h3 class="sec">${TODAY.getDay()===0||TODAY.getDay()===6?'Questo weekend':'Il prossimo weekend'} <small>${+w.s===+w.e?GL[w.s.getDay()]+' '+w.s.getDate()+' '+MS[w.s.getMonth()]:w.s.getDate()+(w.s.getMonth()!==w.e.getMonth()?' '+MS[w.s.getMonth()]:'')+'–'+w.e.getDate()+' '+MS[w.e.getMonth()]}</small></h3>`;
+  h+=wk.length?`<div class="list">${wk.map(row).join('')}</div>`:`<div class="empty">Nessun evento in elenco per questo weekend con questi filtri.</div>`;
+  let cur='';
+  later.forEach(o=>{const k=MESI[o.s.getMonth()].replace(/^./,c=>c.toUpperCase())+' '+o.s.getFullYear();if(k!==cur){if(cur)h+='</div>';cur=k;h+=`<h3 class="sec">${k}</h3><div class="list">`}h+=row(o)});
+  if(cur)h+='</div>';
+  if(!later.length&&!wk.length)h=`<div class="empty">Nessun evento nei prossimi mesi con questi filtri.</div>`;
+  return h;
+}
+function vCalendario(list){
+  const m=st.mese?parseIso(st.mese+'-01'):new Date(TODAY.getFullYear(),TODAY.getMonth(),1);
+  const from=new Date(m.getFullYear(),m.getMonth(),1),to=new Date(m.getFullYear(),m.getMonth()+1,0);
+  const os=occBetween(from,to,list);
+  return `<div class="monthnav"><button class="navbtn" data-act="mese" data-v="-1" aria-label="Mese precedente">‹</button><h2>${MESI[m.getMonth()]} ${m.getFullYear()}</h2><button class="navbtn" data-act="mese" data-v="1" aria-label="Mese successivo">›</button></div>
+  <p class="note" style="margin:0 0 10px">${os.length} ${os.length===1?'evento':'eventi'}${st.prov!=='tutte'?' in provincia di '+PROVINCE[st.prov]:' in Veneto'}</p>
+  ${os.length?`<div class="list">${os.map(row).join('')}</div>`:`<div class="empty">Nessun evento in questo mese con questi filtri.</div>`}`;
+}
+function vPreferiti(list){
+  const favs=list.filter(ev=>st.fav.includes(ev.id)).map(ev=>{const o=nextOcc(ev);return o?{ev,s:o.s,e:o.e}:null}).filter(Boolean).sort((a,b)=>a.s-b.s);
+  return favs.length?`<h3 class="sec">I tuoi preferiti <small>in ordine di data</small></h3><div class="list">${favs.map(row).join('')}</div>`
+   :`<div class="empty">Nessun preferito ancora.<br>Apri un evento e tocca <b>★ Salva nei preferiti</b>.</div>`;
+}
+function render(){
+  EV=allEvents();
+  const list=EV.filter(passes);
+  $('#sub').textContent=EV.length+' ricorrenze in Veneto · '+GL[TODAY.getDay()]+' '+TODAY.getDate()+' '+MESI[TODAY.getMonth()];
+  document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===st.tab));
+  $('#provChips').innerHTML=[['tutte','Tutto il Veneto']].concat(REGIONI.Veneto.map(p=>[p,PROVINCE[p]])).map(([k,l])=>`<button class="chip" data-act="prov" data-v="${k}" aria-pressed="${st.prov===k}">${l}</button>`).join('');
+  $('#typeChips').innerHTML=Object.keys(TIPIP).map(k=>`<button class="chip" data-act="tipo" data-v="${k}" aria-pressed="${st.tipi.includes(k)}"><i style="background:var(--t-${k})"></i>${TIPIP[k]}</button>`).join('');
+  $('#app').innerHTML=(st.tab==='calendario'?vCalendario(list):st.tab==='preferiti'?vPreferiti(EV):vProssimi(list))
+   +`<p class="note">Le date sono calcolate dal periodo in cui l'evento si ripete di solito: controlla sempre il programma ufficiale prima di partire. Gli eventi segnati «date previste» possono spostarsi di qualche giorno.</p>`;
+}
+
+/* ---------- sheet ---------- */
+function openSheet(h){$('#sheetBody').innerHTML=h;$('#sheetWrap').hidden=false;document.body.style.overflow='hidden'}
+function closeSheet(){$('#sheetWrap').hidden=true;$('#sheetBody').innerHTML='';document.body.style.overflow=''}
+let tt=0;function toast(t){const el=$('#toast');el.textContent=t;el.hidden=false;clearTimeout(tt);tt=setTimeout(()=>el.hidden=true,2400)}
+const gcal=(ev,o)=>'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(ev.n)+'&dates='+iso(o.s).replace(/-/g,'')+'/'+iso(add(o.e,1)).replace(/-/g,'')+'&location='+encodeURIComponent(ev.c+', '+(PROVINCE[ev.p]||''))+'&details='+encodeURIComponent((ev.d||'')+(exact(ev)?'':'\nDate previste: verificare il programma ufficiale.'));
+const maps=ev=>'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(ev.c+', '+(PROVINCE[ev.p]||'')+', Italia');
+const gsearch=(ev,o)=>'https://www.google.com/search?q='+encodeURIComponent(ev.n+' '+ev.c+' '+o.s.getFullYear()+' programma');
+function openEvent(id,sIso){
+  const ev=EV.find(x=>x.id===id);if(!ev)return;
+  let o=null;
+  if(sIso){const s=parseIso(sIso);o=occBetween(s,s,[ev]).find(x=>+x.s===+s)||null}
+  if(!o)o=nextOcc(ev);
+  const nx=nextOcc(ev),fav=st.fav.includes(ev.id);
+  openSheet(`<h2>${esc(ev.n)}</h2><p class="place">${esc(ev.c)} · ${esc(PROVINCE[ev.p]||ev.p)}</p>
+  <div class="when" style="--tc:var(--t-${ev.t})"><span class="lab">${TIPI[ev.t]} · ${o&&o.e<TODAY?'edizione passata':exact(ev)?'prossima data':'prossima edizione prevista'}</span>
+    <span class="big">${o?frange(o.s,o.e):'—'}</span>
+    <span class="s">Di solito: ${esc(descr(ev))}</span>
+    ${ev.u?`<span class="s">Ultima edizione nota: ${esc(ev.u)}</span>`:''}</div>
+  ${ev.d?`<p class="desc">${esc(ev.d)}</p>`:''}
+  <div class="actions">
+    <button class="btn ${fav?'':'primary'}" data-act="fav" data-id="${esc(ev.id)}">${fav?'★ Togli dai preferiti':'★ Salva nei preferiti'}</button>
+    ${o?`<a class="btn" href="${gcal(ev,o)}" target="_blank" rel="noopener">Aggiungi a Google Calendar</a>`:''}
+    ${o?`<a class="btn" href="${gsearch(ev,o)}" target="_blank" rel="noopener">Cerca il programma ${o.s.getFullYear()}</a>`:''}
+    <a class="btn" href="${maps(ev)}" target="_blank" rel="noopener">Apri in Maps</a>
+    ${ev.mine?`<button class="btn" data-act="edit" data-id="${esc(ev.id)}">Modifica</button><button class="btn danger" data-act="del" data-id="${esc(ev.id)}">Elimina evento</button>`:''}
+    <button class="btn ghost" data-act="close">Chiudi</button>
+  </div>
+  ${!exact(ev)&&nx?'<p class="note" style="margin-top:14px">Data calcolata dal periodo abituale: verifica il programma ufficiale prima di andare.</p>':''}`);
+}
+function evForm(ev){
+  const m=ev||{};const fr=m.r&&(m.r.f||m.r.f2);const s=fr?fr[0]:iso(TODAY),e=fr?fr[1]:iso(TODAY);
+  openSheet(`<h2>${ev?'Modifica evento':'Nuovo evento'}</h2>
+  <div class="field"><label for="fN">Nome</label><input class="in" id="fN" value="${esc(m.n||'')}" placeholder="Es. Sagra di San Rocco"></div>
+  <div class="field"><label for="fC">Comune o luogo</label><input class="in" id="fC" value="${esc(m.c||'')}" placeholder="Es. Arsego"></div>
+  <div class="row2"><div class="field"><label for="fP">Provincia</label><select class="in" id="fP">${REGIONI.Veneto.map(p=>`<option value="${p}" ${(m.p||'PD')===p?'selected':''}>${PROVINCE[p]}</option>`).join('')}</select></div>
+  <div class="field"><label for="fT">Tipo</label><select class="in" id="fT">${Object.keys(TIPI).map(k=>`<option value="${k}" ${(m.t||'S')===k?'selected':''}>${TIPI[k]}</option>`).join('')}</select></div></div>
+  <div class="row2"><div class="field"><label for="fS">Dal</label><input class="in" type="date" id="fS" value="${s}"></div><div class="field"><label for="fE">Al</label><input class="in" type="date" id="fE" value="${e}"></div></div>
+  <label class="check"><input type="checkbox" id="fY" ${m.r&&m.r.ann?'checked':''}> Si ripete ogni anno nelle stesse date</label>
+  <div class="field"><label for="fD">Note</label><input class="in" id="fD" value="${esc(m.d||'')}" placeholder="Cosa si mangia, con chi andare…"></div>
+  <div class="actions"><button class="btn primary" data-act="saveEv" data-id="${esc(m.id||'')}">Salva</button><button class="btn ghost" data-act="close">Annulla</button></div>`);
+}
+
+/* ---------- actions ---------- */
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act,v=b.dataset.v,id=b.dataset.id;
+  switch(a){
+  case 'tab':st.tab=v;save();render();window.scrollTo(0,0);break;
+  case 'prov':st.prov=v;save();render();break;
+  case 'tipo':st.tipi=st.tipi.includes(v)?st.tipi.filter(x=>x!==v):st.tipi.concat(v);save();render();break;
+  case 'mese':{const m=st.mese?parseIso(st.mese+'-01'):new Date(TODAY.getFullYear(),TODAY.getMonth(),1);const n=new Date(m.getFullYear(),m.getMonth()+(+v),1);st.mese=n.getFullYear()+'-'+pad(n.getMonth()+1);save();render();break}
+  case 'open':openEvent(id,b.dataset.s);break;
+  case 'close':closeSheet();break;
+  case 'fav':{const on=st.fav.includes(id);st.fav=on?st.fav.filter(x=>x!==id):st.fav.concat(id);save();render();openEvent(id);toast(on?'Tolto dai preferiti':'Salvato nei preferiti');break}
+  case 'add':evForm(null);break;
+  case 'edit':evForm(st.mine.find(x=>x.id===id));break;
+  case 'del':{if(b.dataset.ok){st.mine=st.mine.filter(x=>x.id!==id);st.fav=st.fav.filter(x=>x!==id);save();closeSheet();render();toast('Evento eliminato')}else{b.dataset.ok='1';b.textContent='Tocca di nuovo per eliminare'}break}
+  case 'saveEv':{const n=$('#fN').value.trim();if(!n){toast('Scrivi il nome');return}
+    let s=$('#fS').value,en=$('#fE').value||s;if(!s){toast('Scegli la data');return}if(en<s)en=s;
+    const ann=$('#fY').checked;const sd=parseIso(s),ed=parseIso(en);
+    const r=ann?{d:[sd.getMonth()+1,sd.getDate(),Math.round((ed-sd)/DAY)+1],x:1,ann:1,f2:[s,en]}:{f:[s,en]};
+    const ev={id:id||('mio-'+Date.now().toString(36)),n,c:$('#fC').value.trim()||'—',p:$('#fP').value,t:$('#fT').value,r,d:$('#fD').value.trim(),u:''};
+    const i=st.mine.findIndex(x=>x.id===ev.id);if(i>=0)st.mine[i]=ev;else st.mine.push(ev);
+    save();closeSheet();render();toast('Evento salvato');break}
+  }
+});
+let qt=0;$('#q').addEventListener('input',e=>{clearTimeout(qt);qt=setTimeout(()=>{q=e.target.value.trim().toLowerCase();render()},150)});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#sheetWrap').hidden)closeSheet()});
+render();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+})();
+</script>
+</body>
+</html>
