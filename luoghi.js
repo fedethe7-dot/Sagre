@@ -50,5 +50,6 @@ const LUOGHI = {
 
 'Cortina d\'Ampezzo|BL':[46.540,12.136],'Feltre|BL':[46.018,11.910],'Lamon|BL':[46.047,11.746],
 'Pedavena|BL':[46.040,11.880],'Polpet, Sedico|BL':[46.111,12.093],
-'Carmignano di Brenta|PD':[45.629, 11.703],'Cavallino-Treporti|VE':[45.475, 12.535],'Scorzè|VE':[45.572, 12.109],'Lonigo|VI':[45.388, 11.387],'Fiera di Vicenza|VI':[45.53, 11.508],'Bassano del Grappa|VI':[45.766, 11.734],'Dueville|VI':[45.636, 11.548],'Schio|VI':[45.713, 11.358],'Bassano Expo, Cassola|VI':[45.746, 11.775],'Monastier di Treviso|TV':[45.656, 12.433],'San Pietro di Feletto|TV':[45.915, 12.245],'Cologna Veneta|VR':[45.312, 11.383],'Cerea|VR':[45.193, 11.214]
+'Carmignano di Brenta|PD':[45.629, 11.703],'Cavallino-Treporti|VE':[45.475, 12.535],'Scorzè|VE':[45.572, 12.109],'Lonigo|VI':[45.388, 11.387],'Fiera di Vicenza|VI':[45.53, 11.508],'Bassano del Grappa|VI':[45.766, 11.734],'Dueville|VI':[45.636, 11.548],'Schio|VI':[45.713, 11.358],'Bassano Expo, Cassola|VI':[45.746, 11.775],'Monastier di Treviso|TV':[45.656, 12.433],'San Pietro di Feletto|TV':[45.915, 12.245],'Cologna Veneta|VR':[45.312, 11.383],'Cerea|VR':[45.193, 11.214],
+'Villa Farsetti, Santa Maria di Sala|VE':[45.507,12.037],'Noale|VE':[45.550,12.071],'Ponte San Nicolò|PD':[45.368,11.917]
 };

@@ -96,6 +96,7 @@ const EVENTI = [
 ['pd-motodays','Padova Moto Days','Piazzola sul Brenta','PD','A',{w:[3,1,1,0]},'Espositori, motoclub, novità, show e corsi di guida sicura all\'Ex Jutificio.','28 feb–1 mar 2026'],
 ['pd-urlo','Urlo Furyoso','Carmignano di Brenta','PD','A',{w:[9,1,2,-1]},'Motoraduno di inizio settembre.','4–5 set 2026 (20ª ed.)'],
 ['pd-oriente','Festival dell\'Oriente','Fiera di Padova','PD','G',{w:[12,1,1,7],q:'i due weekend di inizio dicembre, ponte dell\'Immacolata compreso'},'Spettacoli, aree culturali, bazar e cucina di Giappone, India, Cina, Tibet, Corea e altri paesi asiatici.','5–8 e 12–13 dic 2026'],
+['pd-befana-psn','Falò Epifanico e Festa della Befana','Ponte San Nicolò','PD','F',{d:[1,6,1],x:1},'Il tradizionale falò della Befana, ogni anno all\'Epifania.','6 gennaio, ogni anno'],
 
 /* ---------------- VENEZIA ---------------- */
 ['ve-carnevale','Carnevale di Venezia','Venezia','VE','G',{e:[-58,12],q:'le due settimane prima del Martedì Grasso'},'Maschere, Volo dell\'Angelo e feste in tutta la città.','ogni anno, data legata alla Pasqua'],
@@ -124,6 +125,10 @@ const EVENTI = [
 ['ve-lagunare','Motoraduno Lagunare','Cavallino-Treporti','VE','A',{w:[5,-1,1,0]},'Motoraduno sul litorale di fine maggio.','30–31 mag 2026 (23ª ed.)'],
 ['ve-rallyscorze','Rally Città di Scorzè','Scorzè','VE','A',{w:[8,1,1,0]},'Rally della Coppa Rally di Zona.','2 ago 2026'],
 ['ve-caorle-scambio','Mostra scambio auto, moto e cicli d\'epoca','Caorle','VE','A',{w:[9,-1,1,0]},'Mostra mercato e scambio di veicoli d\'epoca e ricambi.','26–27 set 2026'],
+['ve-farsetti-fiori','Fiori, Gusti e Colori','Villa Farsetti, Santa Maria di Sala','VE','M',{w:[4,1,0,0]},'Mostra mercato di primavera con fiori, piante, artigianato e sapori nel parco della villa.','6 apr 2025 (circa 250 espositori)'],
+['ve-farsetti-bollicine','Bollicine in Villa','Villa Farsetti, Santa Maria di Sala','VE','G',{w:[4,1,1,0]},'Degustazione di spumanti italiani, Champagne e bollicine europee, con masterclass.','3–4 apr 2027 (10ª ed.)'],
+['ve-farsetti-vino','La Grande Festa del Vino','Villa Farsetti, Santa Maria di Sala','VE','G',{w:[9,-1,1,0]},'Degustazioni di vini italiani e stranieri, produttori e masterclass in villa.','26–27 set 2026 (19ª ed.)'],
+['ve-palio-noale','Palio di Noale','Noale','VE','F',{w:[6,3]},'Rievocazione della corsa dei Tempesta: staffetta uomo-donna attorno alla Rocca.','16–18 giu 2023'],
 
 /* ---------------- VICENZA ---------------- */
 ['vi-soco','Antica Fiera del Soco','Grisignano di Zocco','VI','M',{w:[9,2,2,3]},'Una delle fiere più antiche e grandi del Veneto: bancarelle, bestiame, giostre e stand.','11–16 set 2026'],
