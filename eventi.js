@@ -129,6 +129,9 @@ const EVENTI = [
 ['ve-farsetti-bollicine','Bollicine in Villa','Villa Farsetti, Santa Maria di Sala','VE','G',{w:[4,1,1,0]},'Degustazione di spumanti italiani, Champagne e bollicine europee, con masterclass.','3–4 apr 2027 (10ª ed.)'],
 ['ve-farsetti-vino','La Grande Festa del Vino','Villa Farsetti, Santa Maria di Sala','VE','G',{w:[9,-1,1,0]},'Degustazioni di vini italiani e stranieri, produttori e masterclass in villa.','26–27 set 2026 (19ª ed.)'],
 ['ve-palio-noale','Palio di Noale','Noale','VE','F',{w:[6,3]},'Rievocazione della corsa dei Tempesta: staffetta uomo-donna attorno alla Rocca.','16–18 giu 2023'],
+['ve-ape-farsetti-pri','Aperitivo in Villa (primavera)','Villa Farsetti, Santa Maria di Sala','VE','F',{w:[4,2,0,0]},'Domenica di musica e aperitivo nel parco della villa, dal pomeriggio a mezzanotte. Si alterna con la Rocca di Noale.','12 apr 2026'],
+['ve-ape-farsetti-aut','Aperitivo in Villa (autunno)','Villa Farsetti, Santa Maria di Sala','VE','F',{w:[10,3,0,0]},'Domenica di musica e aperitivo nel parco della villa, dal pomeriggio a mezzanotte. Si alterna con la Rocca di Noale.','18 ott 2026'],
+['ve-ape-rocca','Aperitivo in Rocca','Noale','VE','F',{w:[4,-1,0,0]},'Domenica di musica e aperitivo nei giardini della Rocca dei Tempesta, con mercatino dal mattino. Dagli organizzatori di Aperitivo in Villa.','28 apr 2024'],
 
 /* ---------------- VICENZA ---------------- */
 ['vi-soco','Antica Fiera del Soco','Grisignano di Zocco','VI','M',{w:[9,2,2,3]},'Una delle fiere più antiche e grandi del Veneto: bancarelle, bestiame, giostre e stand.','11–16 set 2026'],
