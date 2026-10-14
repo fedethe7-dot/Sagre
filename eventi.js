@@ -1,6 +1,6 @@
 /* Lunario delle Sagre - elenco eventi ricorrenti
    Ogni riga: [id, nome, comune, provincia, tipo, regola, descrizione, ultima edizione nota]
-   tipo: S = sagra, F = festa / ricorrenza, M = fiera / mercato, G = grande evento
+   tipo: S = sagra, F = festa / ricorrenza, M = fiera / mercato, G = grande evento, A = auto e moto
    regola:
      {w:[mese, n, giorniPrima, giorniDopo]}  n-esima domenica del mese (-1 = ultima),
                                              l'evento va da (domenica - giorniPrima) a (domenica + giorniDopo).
@@ -90,8 +90,12 @@ const EVENTI = [
 ['pd-renga','Festa dea Renga','Codiverno, Vigonza','PD','S',{d:[11,28,11]},'Aringa (renga) e polenta.','28 nov–8 dic 2026'],
 ['pd-antiquariato-prato','Mercato dell\'Antiquariato in Prato','Prato della Valle, Padova','PD','M',{mo:3,x:1},'Antiquariato e collezionismo in Prato della Valle.','ogni terza domenica'],
 ['pd-antiquariato-piazzola','Mercatino dell\'Antiquariato','Piazzola sul Brenta','PD','M',{mo:-1,x:1},'Grande mercatino davanti a Villa Contarini.','ogni ultima domenica'],
-['pd-classics','Padua Only Classics','Fiera di Padova','PD','G',{d:[2,26,3]},'Nuova fiera delle auto d\'epoca a Padova, dopo il trasferimento di Auto e Moto d\'Epoca a Bologna.','prima edizione 26–28 feb 2027'],
 ['pd-cicloturismo','Fiera del Cicloturismo','Padova','PD','G',{d:[3,19,3]},'Fiera dedicata ai viaggi in bicicletta.','19–21 mar 2027'],
+['pd-classics','Padova Only Classics','Fiera di Padova','PD','A',{w:[2,-1]},'Nuovo salone di auto e moto d\'epoca costruite fino al 1977, nato dopo il trasferimento di Auto e Moto d\'Epoca a Bologna.','prima edizione 26–28 feb 2027'],
+['pd-dueruote','Due Ruote nella Storia','Piazzola sul Brenta','PD','A',{w:[2,2,1,0]},'Mostra scambio di moto, cicli, auto d\'epoca e ricambi.','7–8 feb 2026'],
+['pd-motodays','Padova Moto Days','Piazzola sul Brenta','PD','A',{w:[3,1,1,0]},'Espositori, motoclub, novità, show e corsi di guida sicura all\'Ex Jutificio.','28 feb–1 mar 2026'],
+['pd-urlo','Urlo Furyoso','Carmignano di Brenta','PD','A',{w:[9,1,2,-1]},'Motoraduno di inizio settembre.','4–5 set 2026 (20ª ed.)'],
+['pd-oriente','Festival dell\'Oriente','Fiera di Padova','PD','G',{w:[12,1,1,7],q:'i due weekend di inizio dicembre, ponte dell\'Immacolata compreso'},'Spettacoli, aree culturali, bazar e cucina di Giappone, India, Cina, Tibet, Corea e altri paesi asiatici.','5–8 e 12–13 dic 2026'],
 
 /* ---------------- VENEZIA ---------------- */
 ['ve-carnevale','Carnevale di Venezia','Venezia','VE','G',{e:[-58,12],q:'le due settimane prima del Martedì Grasso'},'Maschere, Volo dell\'Angelo e feste in tutta la città.','ogni anno, data legata alla Pasqua'],
@@ -117,6 +121,9 @@ const EVENTI = [
 ['ve-concordia','Fiera di Santo Stefano','Concordia Sagittaria','VE','M',{d:[7,31,5]},'Fiera storica d\'inizio agosto.','31 lug–4 ago 2026'],
 ['ve-baccala-robegano','Festa del Baccalà','Robegano, Salzano','VE','S',{d:[9,18,17]},'Baccalà tra settembre e ottobre.','18 set–4 ott 2026'],
 ['ve-merla','Festa della Merla','Loncon, Annone Veneto','VE','F',{d:[1,29,3],x:1},'I giorni della merla, gli ultimi di gennaio.','29–31 gennaio'],
+['ve-lagunare','Motoraduno Lagunare','Cavallino-Treporti','VE','A',{w:[5,-1,1,0]},'Motoraduno sul litorale di fine maggio.','30–31 mag 2026 (23ª ed.)'],
+['ve-rallyscorze','Rally Città di Scorzè','Scorzè','VE','A',{w:[8,1,1,0]},'Rally della Coppa Rally di Zona.','2 ago 2026'],
+['ve-caorle-scambio','Mostra scambio auto, moto e cicli d\'epoca','Caorle','VE','A',{w:[9,-1,1,0]},'Mostra mercato e scambio di veicoli d\'epoca e ricambi.','26–27 set 2026'],
 
 /* ---------------- VICENZA ---------------- */
 ['vi-soco','Antica Fiera del Soco','Grisignano di Zocco','VI','M',{w:[9,2,2,3]},'Una delle fiere più antiche e grandi del Veneto: bancarelle, bestiame, giostre e stand.','11–16 set 2026'],
@@ -135,6 +142,14 @@ const EVENTI = [
 ['vi-martino-breganze','Antica Fiera di San Martino','Breganze','VI','M',{d:[11,8,4]},'Fiera di San Martino con prodotti locali e Torcolato.','novembre'],
 ['vi-zattere','Palio delle Zattere','Valbrenta','VI','F',{w:[7,3,0,0]},'Gara delle zattere sul fiume Brenta.','19 lug 2026'],
 ['vi-camisano','Il Bollito Camisanese','Camisano Vicentino','VI','S',{w:[10,2,2,1]},'Bollito misto.','9–12 ott 2026'],
+['vi-lonigo-scambio','Mostra Scambio auto, moto, cicli e ricambi d\'epoca','Lonigo','VI','A',{w:[3,2,1,0]},'Grande mercato all\'Ippodromo, organizzato dalla Pro Loco.','7–8 mar 2026 (36ª ed.)'],
+['vi-classiccar','Vicenza Classic Car Show','Fiera di Vicenza','VI','A',{d:[3,19,3]},'Salone di auto classiche e youngtimer, con raduno Youngclassic.','19–21 mar 2027'],
+['vi-resistenza','Prova della Resistenza 1899 (rievocazione)','Bassano del Grappa','VI','A',{d:[5,29,3]},'Rievocazione della corsa del 1899 con vetture costruite prima del 1905.','29–31 mag 2026'],
+['vi-leggenda','La Leggenda di Bassano','Bassano del Grappa','VI','A',{w:[6,3,3,0]},'Trofeo Giannino Marzotto: un centinaio di auto sport da corsa 1920–1960 tra Veneto e Dolomiti.','18–21 giu 2026'],
+['vi-dueville-scambio','Mostra scambio città di Dueville','Dueville','VI','A',{w:[7,2,1,0]},'Mostra scambio di auto, moto e ricambi d\'epoca.','11–12 lug 2026'],
+['vi-rallyschio','Rally Città di Schio','Schio','VI','A',{w:[9,2,1,0]},'Rally della Coppa Rally di Zona.','13 set 2026'],
+['vi-rallybassano','Rally Città di Bassano','Bassano del Grappa','VI','A',{w:[10,2,2,0]},'Il "Mundialito del Nordest", con anche il Rally Storico. Arrivo in piazza Libertà.','9–11 ott 2026 (43ª ed.)'],
+['vi-bassano-scambio','Mostra scambio e fiera dei motori','Bassano Expo, Cassola','VI','A',{w:[11,3,1,0]},'Ricambi d\'auto e moto storiche, bici, modellismo ed editoria.','novembre 2026 (20ª ed.)'],
 
 /* ---------------- TREVISO ---------------- */
 ['tv-spiedo','Spiedo Gigante','Pieve di Soligo','TV','S',{w:[9,-1,1,14]},'Lo spiedo più lungo d\'Italia, su tre weekend.','28 set–13 ott 2024'],
@@ -153,6 +168,10 @@ const EVENTI = [
 ['tv-radicchio-dosson','Festa del Radicchio Rosso','Dosson, Casier','TV','S',{d:[1,10,10]},'Radicchio rosso tardivo.','gennaio'],
 ['tv-dosson','Sagra di Dosson','Dosson, Casier','TV','S',{d:[9,4,11]},'Sagra di settembre.','4–14 set 2026'],
 ['tv-patata-montello','Mostra Mercato della Patata del Montello','Volpago del Montello','TV','M',{w:[9,2,1,0]},'Patata del Montello.','12–13 set 2026'],
+['tv-badoere-scambio','Mostra Scambio Moto e Bici d\'Epoca','Badoere, Morgano','TV','A',{d:[4,25,1]},'Mostra scambio nella barchessa di Badoere.','25 apr 2026 (13ª ed.)'],
+['tv-monastier','Motoraduno Sulla strada dei vini del Piave','Monastier di Treviso','TV','A',{w:[7,1,1,0]},'Motoraduno tra le cantine del Piave.','4–5 lug 2026'],
+['tv-rallymarca','Rally della Marca','Montebelluna','TV','A',{w:[7,2,2,0]},'Rally del Campionato Italiano Rally Challenger tra Montello e colline trevigiane.','luglio 2026, arrivo il 12 (42ª ed.)'],
+['tv-motoprosecco','MotoProsecco','San Pietro di Feletto','TV','A',{w:[9,1,0,0]},'Motogiro tra le colline del Prosecco con pranzo in cantina.','6 set 2026 (26ª ed.)'],
 
 /* ---------------- VERONA ---------------- */
 ['vr-vinitaly','Vinitaly','Fiera di Verona','VR','G',{d:[4,12,4]},'Il salone internazionale dei vini e distillati.','aprile, date indicative'],
@@ -168,6 +187,11 @@ const EVENTI = [
 ['vr-valeggio','Fiera di Valeggio','Valeggio sul Mincio','VR','M',{w:[7,1,1,1]},'Fiera d\'inizio luglio.','4–6 lug 2026'],
 ['vr-garda','Palio delle Contrade','Garda','VR','F',{d:[8,15,1],x:1},'Regata delle contrade a Ferragosto.','15 agosto'],
 ['vr-castelnuovo','Festa dell\'Uva','Castelnuovo del Garda','VR','S',{w:[9,3]},'Uva e vini del Garda.','18–20 set 2026'],
+['vr-mbe','Motor Bike Expo','Fiera di Verona','VR','A',{w:[1,4]},'Il grande salone della moto: case, custom, accessori e show.','22–24 gen 2027'],
+['vr-duevalli','Rally Due Valli','Verona','VR','A',{w:[6,1,2,-1]},'Tappa del Campionato Italiano Assoluto Rally con arrivo in Piazza Brà.','5–6 giu 2026'],
+['vr-mondoemoto','Motoconcentrazione MONDOeMOTO','Cologna Veneta','VR','A',{w:[7,3,0,0]},'Motoraduno aperto a tutte le moto.','19 lug 2026 (11ª ed.)'],
+['vr-melotti','Motoraduno Riso Melotti','Isola della Scala','VR','A',{w:[8,-1,0,0]},'Motoraduno con risotto nella terra del Vialone Nano.','30 ago 2026 (27ª ed.)'],
+['vr-cerea','Passione Auto Moto Ricambi','Cerea','VR','A',{w:[9,1,1,0]},'Mostra scambio di auto, moto e ricambi.','5–6 set 2026'],
 
 /* ---------------- ROVIGO ---------------- */
 ['ro-riso','Festa del Riso','Porto Tolle','RO','S',{w:[9,3,3,0]},'Riso del Delta del Po IGP.','17–20 set 2026'],
@@ -180,5 +204,6 @@ const EVENTI = [
 ['bl-bande','Festa delle Bande','Cortina d\'Ampezzo','BL','F',{d:[8,23,8]},'Bande musicali per le vie di Cortina.','23–30 ago 2026'],
 ['bl-orzo','Festa dell\'Orzo','Pedavena','BL','S',{w:[7,2,1,0]},'Orzo e birra nella patria della birra Pedavena.','11–12 lug 2026'],
 ['bl-castagna','Festa della Castagna','Pedavena','BL','S',{w:[10,1,0,21]},'Castagne nei weekend d\'ottobre.','4–25 ott 2026'],
-['bl-polpet','Polpet la Sagra','Polpet, Sedico','BL','S',{d:[8,28,12]},'Sagra di fine estate.','28 ago–8 set 2026']
+['bl-polpet','Polpet la Sagra','Polpet, Sedico','BL','S',{d:[8,28,12]},'Sagra di fine estate.','28 ago–8 set 2026'],
+['bl-coppadoro','Coppa d\'Oro delle Dolomiti','Cortina d\'Ampezzo','BL','A',{w:[7,3,3,0]},'Regolarità per auto storiche fino al 1971 tra i passi dolomitici, con concorso d\'eleganza.','16–19 lug 2026']
 ];

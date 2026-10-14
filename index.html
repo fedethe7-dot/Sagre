@@ -20,7 +20,7 @@
   --bg:#F3F5F1; --surface:#FFFFFF; --surface-2:#E8ECE4; --line:#D6DCD0;
   --ink:#1C2620; --ink-2:#47534B; --muted:#6B776F;
   --accent:#C2410C; --accent-ink:#FFFFFF; --accent-soft:#FBE6D9;
-  --t-S:#C2410C; --t-F:#7C3AED; --t-M:#0F766E; --t-G:#1D4ED8;
+  --t-S:#C2410C; --t-F:#7C3AED; --t-M:#0F766E; --t-G:#1D4ED8; --t-A:#B91C1C;
   --star:#D99A00;
   --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
   --f-body:"Atkinson Hyperlegible","Segoe UI",Verdana,system-ui,sans-serif;
@@ -30,12 +30,12 @@
   --bg:#141A16; --surface:#1C241F; --surface-2:#25302A; --line:#34413A;
   --ink:#EEF2EC; --ink-2:#C3CCC5; --muted:#95A299;
   --accent:#F08A4B; --accent-ink:#2A1206; --accent-soft:#3A2416;
-  --t-S:#F08A4B; --t-F:#B794F4; --t-M:#4FD1C5; --t-G:#7FA7F5; --star:#F2C14E; color-scheme:dark}}
+  --t-S:#F08A4B; --t-F:#B794F4; --t-M:#4FD1C5; --t-G:#7FA7F5; --t-A:#F87171; --star:#F2C14E; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#141A16; --surface:#1C241F; --surface-2:#25302A; --line:#34413A;
   --ink:#EEF2EC; --ink-2:#C3CCC5; --muted:#95A299;
   --accent:#F08A4B; --accent-ink:#2A1206; --accent-soft:#3A2416;
-  --t-S:#F08A4B; --t-F:#B794F4; --t-M:#4FD1C5; --t-G:#7FA7F5; --star:#F2C14E; color-scheme:dark}
+  --t-S:#F08A4B; --t-F:#B794F4; --t-M:#4FD1C5; --t-G:#7FA7F5; --t-A:#F87171; --star:#F2C14E; color-scheme:dark}
 
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%;padding-top:env(safe-area-inset-top,0px)}
@@ -162,8 +162,8 @@ const GS=['dom','lun','mar','mer','gio','ven','sab'];
 const GL=['domenica','lunedì','martedì','mercoledì','giovedì','venerdì','sabato'];
 const ORD={1:'primo',2:'secondo',3:'terzo',4:'quarto',5:'quinto','-1':'ultimo'};
 const ORDF={1:'prima',2:'seconda',3:'terza',4:'quarta',5:'quinta','-1':'ultima'};
-const TIPI={S:'Sagra',F:'Festa e ricorrenza',M:'Fiera e mercato',G:'Grande evento'};
-const TIPIP={S:'Sagre',F:'Feste e ricorrenze',M:'Fiere e mercati',G:'Grandi eventi'};
+const TIPI={S:'Sagra',F:'Festa e ricorrenza',M:'Fiera e mercato',G:'Grande evento',A:'Auto e moto'};
+const TIPIP={S:'Sagre',F:'Feste e ricorrenze',M:'Fiere e mercati',G:'Grandi eventi',A:'Auto e moto'};
 const DAY=864e5;
 const pad=n=>String(n).padStart(2,'0');
 const d0=d=>new Date(d.getFullYear(),d.getMonth(),d.getDate());
