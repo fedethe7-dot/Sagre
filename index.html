@@ -124,6 +124,7 @@ h3.sec small{font-family:var(--f-body);font-weight:400;font-size:.85rem;color:va
 .pop small{font-weight:400;color:#47534B}
 .dist{font-weight:700;color:var(--ink)}
 @media (prefers-reduced-motion:no-preference){.sheet{animation:up .2s ease-out}@keyframes up{from{transform:translateY(30px);opacity:.6}to{transform:none;opacity:1}}}
+.filtbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:10px 0 14px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--t-S,#C2410C) 14%,transparent);font-weight:700}
 </style>
 </head>
 <body>
@@ -346,7 +347,9 @@ function render(){
   $('#provChips').innerHTML=[['tutte','Tutto il Veneto']].concat(REGIONI.Veneto.map(p=>[p,PROVINCE[p]])).map(([k,l])=>`<button class="chip" data-act="prov" data-v="${k}" aria-pressed="${st.prov===k}">${l}</button>`).join('');
   $('#typeChips').innerHTML=Object.keys(TIPIP).map(k=>`<button class="chip" data-act="tipo" data-v="${k}" aria-pressed="${st.tipi.includes(k)}"><i style="background:var(--t-${k})"></i>${TIPIP[k]}</button>`).join('');
   if(st.tab!=='radar'&&MAP){MAP.remove();MAP=null}
-  $('#app').innerHTML=(st.tab==='calendario'?vCalendario(list):st.tab==='preferiti'?vPreferiti(EV):st.tab==='radar'?vRadar(list):vProssimi(list))
+  const filt=(st.prov!=='tutte'||st.tipi.length||q)&&st.tab!=='preferiti';
+  const banner=filt?`<div class="filtbar"><span>Filtri attivi: vedi ${list.length} ricorrenze su ${EV.length}</span><button class="chip" data-act="reset" aria-pressed="true">Mostra tutto</button></div>`:'';
+  $('#app').innerHTML=banner+(st.tab==='calendario'?vCalendario(list):st.tab==='preferiti'?vPreferiti(EV):st.tab==='radar'?vRadar(list):vProssimi(list))
    +`<p class="note">Le date sono calcolate dal periodo in cui l'evento si ripete di solito: controlla sempre il programma ufficiale prima di partire. Gli eventi segnati «date previste» possono spostarsi di qualche giorno.${st.tab==='radar'?' Sulla mappa ogni evento è nel centro del paese, non all\'indirizzo esatto.':''}</p>`;
   if(st.tab==='radar')initMap(list);
 }
@@ -398,6 +401,7 @@ document.addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act,v=b.dataset.v,id=b.dataset.id;
   switch(a){
   case 'tab':st.tab=v;save();render();window.scrollTo(0,0);break;
+  case 'reset':st.prov='tutte';st.tipi=[];q='';{const i=document.querySelector('#q');if(i)i.value=''}save();render();break;
   case 'prov':st.prov=v;save();render();break;
   case 'tipo':st.tipi=st.tipi.includes(v)?st.tipi.filter(x=>x!==v):st.tipi.concat(v);save();render();break;
   case 'mese':{const m=st.mese?parseIso(st.mese+'-01'):new Date(TODAY.getFullYear(),TODAY.getMonth(),1);const n=new Date(m.getFullYear(),m.getMonth()+(+v),1);st.mese=n.getFullYear()+'-'+pad(n.getMonth()+1);save();render();break}
