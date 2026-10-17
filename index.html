@@ -163,8 +163,8 @@ const GS=['dom','lun','mar','mer','gio','ven','sab'];
 const GL=['domenica','lunedì','martedì','mercoledì','giovedì','venerdì','sabato'];
 const ORD={1:'primo',2:'secondo',3:'terzo',4:'quarto',5:'quinto','-1':'ultimo'};
 const ORDF={1:'prima',2:'seconda',3:'terza',4:'quarta',5:'quinta','-1':'ultima'};
-const TIPI={S:'Sagra',F:'Festa e ricorrenza',M:'Fiera e mercato',G:'Grande evento',A:'Auto e moto'};
-const TIPIP={S:'Sagre',F:'Feste e ricorrenze',M:'Fiere e mercati',G:'Grandi eventi',A:'Auto e moto'};
+const TIPI={S:'Sagra / fiera',F:'Festa e ricorrenza',G:'Grande evento',A:'Auto e moto'};
+const TIPIP={S:'Sagre e fiere',F:'Feste e ricorrenze',G:'Grandi eventi',A:'Auto e moto'};
 const DAY=864e5;
 const pad=n=>String(n).padStart(2,'0');
 const d0=d=>new Date(d.getFullYear(),d.getMonth(),d.getDate());
@@ -177,6 +177,7 @@ const TODAY=d0(new Date());
 const K='lunario-v1';
 let st={tab:'prossimi',prov:'tutte',tipi:[],fav:[],mine:[],mese:null};
 try{Object.assign(st,JSON.parse(localStorage.getItem(K)||'{}'))}catch(e){}
+st.tipi=[...new Set((st.tipi||[]).map(x=>x==='M'?'S':x))];
 function save(){try{localStorage.setItem(K,JSON.stringify(st))}catch(e){}}
 let q='';
 
@@ -211,8 +212,8 @@ const exact=ev=>!!(ev.r.x||ev.r.f);
 
 /* ---------- data ---------- */
 function allEvents(){
-  const base=EVENTI.map(a=>({id:a[0],n:a[1],c:a[2],p:a[3],t:a[4],r:a[5],d:a[6],u:a[7]}));
-  return base.concat(st.mine.map(m=>Object.assign({mine:1},m)));
+  const base=EVENTI.map(a=>({id:a[0],n:a[1],c:a[2],p:a[3],t:a[4]==='M'?'S':a[4],r:a[5],d:a[6],u:a[7]}));
+  return base.concat(st.mine.map(m=>Object.assign({mine:1},m,{t:m.t==='M'?'S':m.t})));
 }
 let EV=allEvents();
 function passes(ev){
