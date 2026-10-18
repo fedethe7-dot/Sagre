@@ -257,16 +257,32 @@ async function apriConBrowser(url) {
         }).catch(() => false);
         if (cliccato) await pg.waitForTimeout(2500);
       }
-      // a volte gli eventi sono dentro un riquadro (iframe): prendo anche quelli
-      let html = await pg.content();
-      // alcuni siti (es. moduli Deskline/feratel) mettono gli eventi dentro componenti "shadow DOM": li apro
-      html += await pg.evaluate(() => {
-        const out = [];
-        const giro = root => root.querySelectorAll('*').forEach(el => { if (el.shadowRoot) { out.push('<div>' + el.shadowRoot.innerHTML + '</div>'); giro(el.shadowRoot); } });
-        giro(document);
-        return out.join('\n');
-      }).catch(() => '');
-      for (const f of pg.frames().slice(1)) { try { html += await f.content(); } catch {} }
+      const foto = async () => {
+        // a volte gli eventi sono dentro un riquadro (iframe) o in componenti "shadow DOM" (moduli Deskline/feratel): prendo anche quelli
+        let h = await pg.content();
+        for (const f of pg.frames().slice(1)) { try { h += await f.content(); } catch {} }
+        h += await pg.evaluate(() => {
+          const out = [];
+          const giro = root => root.querySelectorAll('*').forEach(el => { if (el.shadowRoot) { out.push('<div>' + el.shadowRoot.innerHTML + '</div>'); giro(el.shadowRoot); } });
+          giro(document);
+          return out.join('\n');
+        }).catch(() => '');
+        return h;
+      };
+      let html = await foto();
+      // elenchi divisi in pagine (1, 2, 3…): le sfoglio fino a 8
+      for (let k = 2; k <= 8; k++) {
+        const ok = await pg.evaluate(k => {
+          const re = new RegExp('^(go to page|vai alla pagina|pagina|page)\\s*' + k + '$', 'i');
+          const giro = root => { for (const el of root.querySelectorAll('a,button,[role=button]')) { const l = (el.getAttribute('aria-label') || '').trim(), t = (el.textContent || '').trim();
+              if (re.test(l) || (t === String(k) && el.closest('[class*=pagin]'))) { el.click(); return true; } }
+            for (const el of root.querySelectorAll('*')) if (el.shadowRoot && giro(el.shadowRoot)) return true; return false; };
+          return giro(document);
+        }, k).catch(() => false);
+        if (!ok) break;
+        await pg.waitForTimeout(3500);
+        html += await foto();
+      }
       return html;
     } finally { await pg.close(); }
   } catch (e) { if (!BROWSER) BROWSER = false; console.log('  (browser non disponibile: ' + (e.message || e).split('\n')[0] + ')'); return null; }
