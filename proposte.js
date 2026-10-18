@@ -1,7 +1,7 @@
 /* Generato da scripts/scansiona.mjs: eventi trovati sui siti di fonti.txt. Non modificare a mano. */
-const PROPOSTE = {"aggiornato":"2026-10-18T15:32:59.800Z",
+const PROPOSTE = {"aggiornato":"2026-10-18T15:34:59.348Z",
 "fonti":[
-{"url":"https://2night.it/padova/eventi.html","ok":1,"n":16,"night":1},
+{"url":"https://2night.it/padova/eventi.html","ok":0,"n":16,"errore":"il sito ha risposto 403"},
 {"url":"https://www.creazionisrl.it/villa-peggys/","ok":1,"n":1,"night":1},
 {"url":"https://www.lamulata.it/eventi#sectionEvt","ok":1,"n":0,"night":1},
 {"url":"https://www.creazionisrl.it/la-casa-dei-gelsi/","ok":1,"n":0,"night":1},
