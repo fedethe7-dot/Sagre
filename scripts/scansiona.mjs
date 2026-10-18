@@ -63,7 +63,7 @@ function trovaDate(t) {
   re = /(\d{1,2})[\/.](\d{1,2})[\/.](\d{2,4})\s*(?:-|–|—|al|a)\s*(\d{1,2})[\/.](\d{1,2})[\/.](\d{2,4})/g;
   while ((m = re.exec(t))) prendi(m, data(+m[1], +m[2], +m[3]), data(+m[4], +m[5], +m[6]));
   // 17 ottobre 2026 / domenica 18 ott
-  re = new RegExp(`(\\d{1,2})\\s+${MESE_RE}(?:\\s+(\\d{4}))?`, 'gi');
+  re = new RegExp(`(\\d{1,2})\\s+${MESE_RE}(?:[\\s,]+(\\d{4}))?`, 'gi');
   while ((m = re.exec(t))) { const d = data(+m[1], mese(m[2]), m[3] && +m[3]); prendi(m, d, d); }
   // 17/10/2026
   re = /\b(\d{1,2})[\/.](\d{1,2})[\/.](20\d{2})\b/g;
@@ -72,13 +72,14 @@ function trovaDate(t) {
 }
 
 /* ---------- luogo ---------- */
-function trovaLuogo(t, provDefault) {
+function trovaLuogo(t, provDefault, dove) {
   const n = ' ' + norm(t) + ' ';
   let p = null;
   const sig = String(t).match(/\((PD|VE|VI|TV|VR|RO|BL)\)/);
   if (sig) p = sig[1];
   for (const c of COMUNI) if (n.includes(' ' + c.n + ' ') && (!p || c.p === p)) return { c: c.nome, p: c.p, ll: LUOGHI[c.chiave + '|' + c.p] || null };
-  return { c: '', p: p || provDefault || '' };
+  const ultimo = String(dove || '').split(/[,|]/).map(x => x.trim()).filter(x => x && x.length < 30 && /^[A-ZÀ-Ú]/.test(x)).pop();
+  return { c: ultimo && !trovaDate(ultimo).length ? ultimo : '', p: p || provDefault || '' };
 }
 
 /* ---------- HTML ---------- */
@@ -106,6 +107,26 @@ function daJsonLd(html, base) {
   };
   for (const m of html.matchAll(/<script[^>]*application\/ld\+json[^>]*>([\s\S]*?)<\/script>/gi)) {
     try { vedi(JSON.parse(m[1].trim())); } catch { /* json rotto: lo salto */ }
+  }
+  return out;
+}
+
+// 1b) Moduli eventi Deskline/feratel (usati da molti siti turistici del Veneto)
+function daDeskline(html, base) {
+  const out = [];
+  const inizi = [...html.matchAll(/<a\b[^>]*href="([^"]*)"[^>]*>\s*(?:<!---->)*\s*<div[^>]*class="event_offer-card__upper(?=[\s"])/gi)];
+  for (let i = 0; i < inizi.length; i++) {
+    const m = inizi[i];
+    const card = html.slice(m.index, i + 1 < inizi.length ? inizi[i + 1].index : m.index + 20000);
+    const pick = cls => { const x = card.match(new RegExp('class="(?:[^"]*\\s)?' + cls + '(?=[\\s"])[^"]*"[^>]*>([\\s\\S]*?)<\\/div>')); return x ? testo(x[1]) : ''; };
+    const n = pick('event_offer-card__title');
+    const quando = testo((card.match(/<dw-event-badge[\s\S]*?<\/dw-event-badge>/i) || [''])[0]);
+    const date = trovaDate(quando.replace(/,/g, ' '));
+    if (!n || !date.length) continue;
+    const dove = pick('event_offer-card__location').replace(/Mostra sulla mappa/i, '').trim();
+    let href = m[1];
+    if (/^#\//.test(href) || !href) href = base.split('#')[0] + href;
+    out.push({ n, s: date[0].s, e: date[0].e, dove, url: assoluto(href, base), d: pick('event_offer-card__description-block'), strutturato: 1 });
   }
   return out;
 }
@@ -173,14 +194,15 @@ const PAROLE_EVENTO = /sagra|festa|fiera|mercat|palio|festival|rievoca|carneval|
 
 function analizza(html, base, provDefault, night) {
   const strutt = daJsonLd(html, base);
-  const grezzi = strutt.length ? strutt.map(x => Object.assign(x, { strutturato: 1 })) : daTesto(html, base);
+  const desk = /event_offer-card/.test(html) ? daDeskline(html, base) : [];
+  const grezzi = strutt.length ? strutt.map(x => Object.assign(x, { strutturato: 1 })) : desk.length ? desk : daTesto(html, base);
   const fine = new Date(OGGI.getTime() + (night ? 60 : MAX_GIORNI) * 864e5);
   const visti = new Set(), out = [], links = linkPagina(html, base);
   for (const x of grezzi) {
     if (x.e < OGGI || x.s > fine) continue;
     if ((x.e - x.s) / 864e5 > 60) continue;              // periodi troppo lunghi: probabilmente non sono un evento
     if (!night && !x.strutturato && !PAROLE_EVENTO.test(x.n + ' ' + x.d)) continue;
-    const luogo = trovaLuogo(x.dove + ' ' + x.n, provDefault);
+    const luogo = trovaLuogo(x.dove + ' ' + x.n, provDefault, x.strutturato ? x.dove : '');
     if (luogo.p && !SIGLE.includes(luogo.p)) continue;
     const id = 'w-' + norm(x.n).replace(/ /g, '-').slice(0, 50) + '-' + iso(x.s);
     if (visti.has(id)) continue; visti.add(id);
@@ -224,7 +246,17 @@ async function apriConBrowser(url) {
     try {
       await pg.goto(url, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
       await pg.waitForTimeout(3000);
-      for (let i = 0; i < 6; i++) { await pg.mouse.wheel(0, 4000); await pg.waitForTimeout(1000); }
+      for (let i = 0; i < 8; i++) {
+        await pg.mouse.wheel(0, 4000); await pg.waitForTimeout(1000);
+        // pulsanti "carica altri" / "mostra altri" (anche dentro i componenti shadow DOM)
+        const cliccato = await pg.evaluate(() => {
+          const re = /^(carica|mostra|vedi|visualizza)\s+(altr|di più|ancora|tutti)|^altri eventi|^load more|^show more/i;
+          const giro = root => { for (const el of root.querySelectorAll('button,a,[role=button]')) { const t = (el.innerText || el.textContent || '').trim(); if (t.length < 40 && re.test(t)) { el.click(); return true; } }
+            for (const el of root.querySelectorAll('*')) if (el.shadowRoot && giro(el.shadowRoot)) return true; return false; };
+          return giro(document);
+        }).catch(() => false);
+        if (cliccato) await pg.waitForTimeout(2500);
+      }
       // a volte gli eventi sono dentro un riquadro (iframe): prendo anche quelli
       let html = await pg.content();
       // alcuni siti (es. moduli Deskline/feratel) mettono gli eventi dentro componenti "shadow DOM": li apro
