@@ -1,0 +1,9 @@
+# Siti da controllare ogni settimana per trovare nuovi eventi.
+# Un link per riga. Le righe che iniziano con # vengono ignorate.
+# Facoltativo: dopo il link metti | e la sigla della provincia, se il sito parla di una sola provincia.
+# Esempio:
+#   https://www.sitodellesagre.it/veneto/padova/ | PD
+#
+# Dopo aver salvato, lo scanner gira da solo ogni lunedì mattina
+# (oppure subito: GitHub > Actions > "Scansiona siti eventi" > Run workflow).
+

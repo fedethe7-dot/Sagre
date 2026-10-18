@@ -1,0 +1,218 @@
+// Lunario delle Sagre - scanner dei siti di eventi.
+// Legge i link da fonti.txt, scarica ogni pagina, cerca eventi con le date
+// e scrive proposte.js: l'app li mostra in "Eventi trovati sui tuoi siti" da controllare.
+// Uso: node scripts/scansiona.mjs            (scarica i siti)
+//      node scripts/scansiona.mjs --file pagina.html [PD]   (prova su un file locale)
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+const OGGI = new Date(); OGGI.setHours(0, 0, 0, 0);
+const MAX_GIORNI = 550;          // ignora eventi oltre ~18 mesi
+const MAX_PER_SITO = 80;
+
+/* ---------- dati dell'app (per riconoscere comuni e doppioni) ---------- */
+function caricaDati() {
+  const src = readFileSync(join(ROOT, 'eventi.js'), 'utf8') + '\n' + readFileSync(join(ROOT, 'luoghi.js'), 'utf8');
+  return new Function(src + '\nreturn {EVENTI, PROVINCE, LUOGHI};')();
+}
+const { EVENTI, PROVINCE, LUOGHI } = caricaDati();
+const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+const SIGLE = Object.keys(PROVINCE);
+// comuni conosciuti: "Arsego, San Giorgio delle Pertiche|PD" -> "arsego" e "san giorgio delle pertiche"
+const COMUNI = [];
+for (const k of Object.keys(LUOGHI)) {
+  const [luogo, p] = k.split('|');
+  for (const parte of luogo.split(',')) { const n = norm(parte); if (n.length > 3) COMUNI.push({ n, nome: parte.trim(), p, chiave: luogo }); }
+}
+for (const [p, nome] of Object.entries(PROVINCE)) if (!COMUNI.some(c => c.n === norm(nome))) COMUNI.push({ n: norm(nome), nome, p, chiave: '' });
+COMUNI.sort((a, b) => b.n.length - a.n.length);
+const NOMI_NOTI = EVENTI.map(e => ({ n: norm(e[1]), c: norm(e[2]) }));
+
+/* ---------- date in italiano ---------- */
+const MESI = { gen: 1, feb: 2, mar: 3, apr: 4, mag: 5, giu: 6, lug: 7, ago: 8, set: 9, sett: 9, ott: 10, nov: 11, dic: 12 };
+const MESE_RE = '(gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre|genn?|feb|mar|apr|mag|giu|lug|ago|sett?|ott|nov|dic)\\.?';
+const mese = s => MESI[s.toLowerCase().replace('.', '').slice(0, 3)] || MESI[s.toLowerCase().slice(0, 4)];
+const pad = n => String(n).padStart(2, '0');
+const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+function data(g, m, y) {
+  if (!m || g < 1 || g > 31) return null;
+  if (!y) { // anno mancante: quest'anno, o il prossimo se è già passato da più di un mese
+    y = OGGI.getFullYear();
+    if (new Date(y, m - 1, g) < new Date(OGGI.getTime() - 31 * 864e5)) y++;
+  }
+  if (y < 100) y += 2000;
+  const d = new Date(y, m - 1, g);
+  return d.getMonth() === m - 1 ? d : null;
+}
+// Restituisce tutte le date (o intervalli) trovate in un testo: [{s, e, pos}]
+function trovaDate(t) {
+  const out = [];
+  const presi = [];
+  const libero = (a, b) => !presi.some(([x, y]) => a < y && b > x);
+  const prendi = (m, s, e) => { if (s && e && e >= s && libero(m.index, m.index + m[0].length)) { presi.push([m.index, m.index + m[0].length]); out.push({ s, e, pos: m.index }); } };
+  let re, m;
+  // dal 30 settembre al 5 ottobre 2026 / 30 set - 5 ott 2026
+  re = new RegExp(`(\\d{1,2})\\s+${MESE_RE}(?:\\s+(\\d{4}))?\\s*(?:-|–|—|al|all'|fino al)\\s*(\\d{1,2})\\s+${MESE_RE}(?:\\s+(\\d{4}))?`, 'gi');
+  while ((m = re.exec(t))) { const y2 = m[6] && +m[6]; const y1 = m[3] ? +m[3] : y2; const e = data(+m[4], mese(m[5]), y2); prendi(m, data(+m[1], mese(m[2]), y1 || (e && e.getFullYear())), e); }
+  // dal 17 al 20 ottobre 2026 / 17-20 ott / 17, 18 e 19 ottobre
+  re = new RegExp(`(\\d{1,2})(?:\\s*,\\s*\\d{1,2})*\\s*(?:-|–|—|al|e|\\/)\\s*(\\d{1,2})\\s+${MESE_RE}(?:\\s+(\\d{4}))?`, 'gi');
+  while ((m = re.exec(t))) { const mm = mese(m[3]); const y = m[4] && +m[4]; prendi(m, data(+m[1], mm, y), data(+m[2], mm, y)); }
+  // 17/10/2026 - 20/10/2026
+  re = /(\d{1,2})[\/.](\d{1,2})[\/.](\d{2,4})\s*(?:-|–|—|al|a)\s*(\d{1,2})[\/.](\d{1,2})[\/.](\d{2,4})/g;
+  while ((m = re.exec(t))) prendi(m, data(+m[1], +m[2], +m[3]), data(+m[4], +m[5], +m[6]));
+  // 17 ottobre 2026 / domenica 18 ott
+  re = new RegExp(`(\\d{1,2})\\s+${MESE_RE}(?:\\s+(\\d{4}))?`, 'gi');
+  while ((m = re.exec(t))) { const d = data(+m[1], mese(m[2]), m[3] && +m[3]); prendi(m, d, d); }
+  // 17/10/2026
+  re = /\b(\d{1,2})[\/.](\d{1,2})[\/.](20\d{2})\b/g;
+  while ((m = re.exec(t))) { const d = data(+m[1], +m[2], +m[3]); prendi(m, d, d); }
+  return out.sort((a, b) => a.pos - b.pos);
+}
+
+/* ---------- luogo ---------- */
+function trovaLuogo(t, provDefault) {
+  const n = ' ' + norm(t) + ' ';
+  let p = null;
+  const sig = String(t).match(/\((PD|VE|VI|TV|VR|RO|BL)\)/);
+  if (sig) p = sig[1];
+  for (const c of COMUNI) if (n.includes(' ' + c.n + ' ') && (!p || c.p === p)) return { c: c.nome, p: c.p, ll: LUOGHI[c.chiave + '|' + c.p] || null };
+  return { c: '', p: p || provDefault || '' };
+}
+
+/* ---------- HTML ---------- */
+const ENT = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', egrave: 'è', eacute: 'é', agrave: 'à', igrave: 'ì', ograve: 'ò', ugrave: 'ù', ndash: '–', mdash: '—', rsquo: '’', lsquo: '‘', laquo: '«', raquo: '»', hellip: '…' };
+const decode = s => s.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (x, c) => c[0] === '#' ? String.fromCodePoint(c[1].toLowerCase() === 'x' ? parseInt(c.slice(2), 16) : +c.slice(1)) : (ENT[c.toLowerCase()] ?? x));
+const testo = h => decode(h.replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
+const assoluto = (href, base) => { try { return new URL(decode(href), base).href; } catch { return base; } };
+
+// 1) Dati strutturati schema.org (molti siti di eventi li hanno)
+function daJsonLd(html, base) {
+  const out = [];
+  const vedi = o => {
+    if (!o || typeof o !== 'object') return;
+    if (Array.isArray(o)) return o.forEach(vedi);
+    if (o['@graph']) vedi(o['@graph']);
+    if (o.itemListElement) vedi([].concat(o.itemListElement).map(x => x.item || x));
+    const tipo = [].concat(o['@type'] || []).join(' ');
+    if (/Event|Festival/i.test(tipo) && o.name && o.startDate) {
+      const s = new Date(String(o.startDate).slice(0, 10) + 'T00:00:00'), e = new Date(String(o.endDate || o.startDate).slice(0, 10) + 'T00:00:00');
+      const loc = [].concat(o.location || [])[0] || {};
+      const ad = loc.address || {};
+      const dove = [loc.name, typeof ad === 'string' ? ad : [ad.addressLocality, ad.addressRegion].join(' ')].filter(Boolean).join(' ');
+      if (!isNaN(s)) out.push({ n: testo(String(o.name)), s, e: isNaN(e) ? s : e, dove, url: o.url ? assoluto(String(o.url), base) : base, d: o.description ? testo(String(o.description)).slice(0, 220) : '' });
+    }
+  };
+  for (const m of html.matchAll(/<script[^>]*application\/ld\+json[^>]*>([\s\S]*?)<\/script>/gi)) {
+    try { vedi(JSON.parse(m[1].trim())); } catch { /* json rotto: lo salto */ }
+  }
+  return out;
+}
+
+// 2) Ricerca nel testo: blocchi con una data, titolo preso dal blocco o dal titolo sopra
+function daTesto(html, base) {
+  const pulito = html.replace(/<(script|style|noscript|svg|nav|footer|form|iframe)[\s\S]*?<\/\1>/gi, ' ').replace(/<!--[\s\S]*?-->/g, ' ');
+  const pezzi = pulito.split(/(?=<(?:h[1-6]|article|li|p|tr|div|section|dt|dd)\b)/i);
+  const out = [];
+  let titolo = '', titoloLink = '', distanza = 9;
+  for (const h of pezzi) {
+    const t = testo(h);
+    if (!t) continue;
+    const isTitolo = /^<h[1-6]/i.test(h) || (t.length < 110 && /^<(?:div|li|p)[^>]*class="[^"]*(title|titolo|nome|heading)/i.test(h));
+    const link = (h.match(/<a\b[^>]*href="([^"#][^"]*)"/i) || [])[1];
+    const date = trovaDate(t);
+    if (isTitolo && !date.length) { titolo = t.slice(0, 140); titoloLink = link ? assoluto(link, base) : ''; distanza = 0; continue; }
+    distanza++;
+    if (!date.length || t.length > 900) continue;
+    const d = date[0];
+    // titolo: un link o grassetto nel blocco, altrimenti il titolo sopra, altrimenti l'inizio del testo
+    const forte = (h.match(/<(?:a|strong|b|h[1-6])\b[^>]*>([\s\S]*?)<\/(?:a|strong|b|h[1-6])>/i) || [])[1];
+    let n = forte && testo(forte);
+    if (n && (trovaDate(n).length || n.length < 5)) n = '';
+    if (!n && isTitolo) n = t.replace(/\d{1,2}[^a-z]*$/i, '');
+    if (!n && distanza <= 3) n = titolo;
+    if (!n) n = t.slice(0, d.pos).replace(/[\s\-–:,|·]+$/, '');
+    if (!n || n.length < 5) continue;
+    n = n.replace(/\s+/g, ' ').slice(0, 120);
+    out.push({ n, s: d.s, e: d.e, dove: t, url: link ? assoluto(link, base) : (distanza <= 3 && titoloLink) || base, d: t.length > n.length + 5 ? t.slice(0, 220) : '' });
+  }
+  return out;
+}
+
+function giaNoto(n, c) {
+  const a = norm(n);
+  return NOMI_NOTI.some(x => (x.n.length > 6 && (a.includes(x.n) || x.n.includes(a))) && (!c || !x.c || x.c.includes(norm(c).split(' ')[0])));
+}
+const PAROLE_EVENTO = /sagra|festa|fiera|mercat|palio|festival|rievoca|carneval|mostra|raduno|motor|auto|moto|trofeo|rally|concert|notte|degusta|vino|enogastr|evento|manifestaz|tradizion|antica|antico|patrono|san |santa |madonna|torneo|corsa|camminata|marcia/i;
+
+function analizza(html, base, provDefault) {
+  const strutt = daJsonLd(html, base);
+  const grezzi = strutt.length ? strutt.map(x => Object.assign(x, { strutturato: 1 })) : daTesto(html, base);
+  const fine = new Date(OGGI.getTime() + MAX_GIORNI * 864e5);
+  const visti = new Set(), out = [];
+  for (const x of grezzi) {
+    if (x.e < OGGI || x.s > fine) continue;
+    if ((x.e - x.s) / 864e5 > 60) continue;              // periodi troppo lunghi: probabilmente non sono un evento
+    if (!x.strutturato && !PAROLE_EVENTO.test(x.n + ' ' + x.d)) continue;
+    const luogo = trovaLuogo(x.dove + ' ' + x.n, provDefault);
+    if (luogo.p && !SIGLE.includes(luogo.p)) continue;
+    const id = 'w-' + norm(x.n).replace(/ /g, '-').slice(0, 50) + '-' + iso(x.s);
+    if (visti.has(id)) continue; visti.add(id);
+    if (giaNoto(x.n, luogo.c)) continue;
+    out.push({ id, n: x.n, c: luogo.c, p: luogo.p, ll: luogo.ll || undefined, s: iso(x.s), e: iso(x.e), url: x.url, d: x.d && x.d !== x.n ? x.d : '', fonte: base });
+    if (out.length >= MAX_PER_SITO) break;
+  }
+  return out;
+}
+
+/* ---------- download ---------- */
+async function scarica(url) {
+  const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 25000);
+  try {
+    const r = await fetch(url, { signal: ctl.signal, redirect: 'follow', headers: { 'User-Agent': 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Mobile Safari/537.36 LunarioSagre/1.0', 'Accept-Language': 'it-IT,it;q=0.9' } });
+    if (!r.ok) throw new Error('il sito ha risposto ' + r.status);
+    const buf = Buffer.from(await r.arrayBuffer());
+    let cs = ((r.headers.get('content-type') || '').match(/charset=([\w-]+)/i) || [])[1];
+    if (!cs) cs = (buf.toString('latin1', 0, 3000).match(/charset=["']?([\w-]+)/i) || [])[1];
+    try { return new TextDecoder(cs || 'utf-8').decode(buf); } catch { return new TextDecoder('utf-8').decode(buf); }
+  } finally { clearTimeout(t); }
+}
+
+function leggiFonti() {
+  const f = join(ROOT, 'fonti.txt');
+  if (!existsSync(f)) return [];
+  return readFileSync(f, 'utf8').split(/\r?\n/).map(r => r.trim()).filter(r => r && !r.startsWith('#'))
+    .map(r => { const [u, p] = r.split('|').map(x => x.trim()); return { url: u, p: (p || '').toUpperCase() }; })
+    .filter(x => /^https?:\/\//i.test(x.url));
+}
+
+async function main() {
+  const arg = process.argv.slice(2);
+  if (arg[0] === '--file') {
+    const res = analizza(readFileSync(arg[1], 'utf8'), 'https://esempio.it/', (arg[2] || '').toUpperCase());
+    console.log(JSON.stringify(res, null, 1));
+    return;
+  }
+  const fonti = leggiFonti();
+  const stato = [], eventi = [];
+  for (const f of fonti) {
+    try {
+      const html = await scarica(f.url);
+      const ev = analizza(html, f.url, f.p);
+      stato.push({ url: f.url, ok: 1, n: ev.length });
+      for (const e of ev) if (!eventi.some(x => x.id === e.id)) eventi.push(e);
+      console.log(`✓ ${f.url}: ${ev.length} eventi`);
+    } catch (e) {
+      stato.push({ url: f.url, ok: 0, n: 0, errore: String(e.name === 'AbortError' ? 'il sito non risponde' : e.message || e) });
+      console.log(`✗ ${f.url}: ${e.message || e}`);
+    }
+  }
+  eventi.sort((a, b) => a.s.localeCompare(b.s) || a.n.localeCompare(b.n, 'it'));
+  const out = { aggiornato: new Date().toISOString(), fonti: stato, eventi };
+  writeFileSync(join(ROOT, 'proposte.js'),
+    '/* Generato da scripts/scansiona.mjs: eventi trovati sui siti di fonti.txt. Non modificare a mano. */\nconst PROPOSTE = {"aggiornato":' + JSON.stringify(out.aggiornato) +
+    ',\n"fonti":[' + stato.map(x => '\n' + JSON.stringify(x)).join(',') + '],\n"eventi":[' + eventi.map(x => '\n' + JSON.stringify(x)).join(',') + ']};\n');
+  console.log(`Totale: ${eventi.length} eventi da ${fonti.length} siti`);
+}
+main().catch(e => { console.error(e); process.exit(1); });

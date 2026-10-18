@@ -124,6 +124,22 @@ h3.sec small{font-family:var(--f-body);font-weight:400;font-size:.85rem;color:va
 .pop small{font-weight:400;color:#47534B}
 .dist{font-weight:700;color:var(--ink)}
 @media (prefers-reduced-motion:no-preference){.sheet{animation:up .2s ease-out}@keyframes up{from{transform:translateY(30px);opacity:.6}to{transform:none;opacity:1}}}
+.found{display:flex;align-items:center;gap:12px;width:100%;text-align:left;margin:4px 0 6px;padding:12px 14px;border-radius:var(--r);border:2px solid var(--accent);background:var(--accent-soft);font-weight:700;color:var(--ink)}
+.found b{font-family:var(--f-display);font-size:1.6rem;line-height:1;color:var(--accent)}
+.found span{flex:1}
+.found small{display:block;font-weight:400;color:var(--ink-2);font-size:.85rem}
+.found.quiet{border:1px dashed var(--line);background:transparent;padding:8px 12px;font-size:.9rem}
+.prop{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.prop .evt{font-size:1rem}
+.prop .pbtn{display:flex;gap:8px;flex-wrap:wrap}
+.prop .pbtn .btn{min-height:44px;flex:1;padding:0 12px;font-size:.92rem}
+.prop a.src{font-size:.85rem;color:var(--accent);word-break:break-all}
+.src-row{display:flex;justify-content:space-between;gap:10px;font-size:.88rem;padding:8px 0;border-bottom:1px solid var(--line)}
+.src-row span:first-child{word-break:break-all;color:var(--ink-2)}
+.chk{color:#B45309;font-weight:700}
+details.past{margin-top:18px}
+details.past summary{cursor:pointer;font-weight:700;color:var(--muted);min-height:44px;display:flex;align-items:center}
+details.past .ev{opacity:.6}
 .filtbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:10px 0 14px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--t-S,#C2410C) 14%,transparent);font-weight:700}
 </style>
 </head>
@@ -152,6 +168,7 @@ h3.sec small{font-family:var(--f-body);font-weight:400;font-size:.85rem;color:va
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="eventi.js"></script>
 <script src="luoghi.js"></script>
+<script src="proposte.js"></script>
 <script>
 (function(){
 "use strict";
@@ -175,9 +192,9 @@ const TODAY=d0(new Date());
 
 /* ---------- storage ---------- */
 const K='lunario-v1';
-let st={tab:'prossimi',prov:'tutte',tipi:[],fav:[],mine:[],mese:null};
+let st={tab:'prossimi',prov:'tutte',tipi:[],fav:[],mine:[],mese:null,ign:[]};
 try{Object.assign(st,JSON.parse(localStorage.getItem(K)||'{}'))}catch(e){}
-st.tipi=[...new Set((st.tipi||[]).map(x=>x==='M'?'S':x))];
+st.tipi=[...new Set((st.tipi||[]).map(x=>x==='M'?'S':x))];if(!Array.isArray(st.ign))st.ign=[];
 function save(){try{localStorage.setItem(K,JSON.stringify(st))}catch(e){}}
 let q='';
 
@@ -209,6 +226,16 @@ function descr(ev){
   return '';
 }
 const exact=ev=>!!(ev.r.x||ev.r.f);
+/* eventi con l'ultima conferma vecchia: da ricontrollare */
+function lastYear(ev){const y=String(ev.u||'').match(/20\d\d/g);return y?Math.max(...y.map(Number)):0}
+const stale=ev=>!ev.mine&&!exact(ev)&&lastYear(ev)>0&&lastYear(ev)<TODAY.getFullYear();
+/* eventi trovati dallo scanner sui siti (proposte.js) */
+const REPO='fedethe7-dot/sagre';
+const PROP=(typeof PROPOSTE!=='undefined'&&PROPOSTE)||{aggiornato:null,fonti:[],eventi:[]};
+function pending(){
+  const mine=new Set(st.mine.map(m=>(m.n||'').toLowerCase()+'|'+((m.r&&(m.r.f||m.r.f2)||[])[0]||'')));
+  return (PROP.eventi||[]).filter(p=>!st.ign.includes(p.id)&&p.e>=iso(TODAY)&&!mine.has(p.n.toLowerCase()+'|'+p.s));
+}
 
 /* ---------- data ---------- */
 function allEvents(){
@@ -245,35 +272,41 @@ function row(o,dist){
     <span class="leaf">${leaf}</span>
     <span class="evb"><span class="evt">${fav?'<span class="star" aria-label="Preferito">★</span>':''}<span>${esc(ev.n)}</span></span>
     <span class="evs">${esc(ev.c)}</span>
-    <span class="evm">${dist?`<span class="dist">${dist}</span>`:''}<span class="prov">${esc(ev.p)}</span><span class="type">${TIPI[ev.t]}</span>${exact(ev)?'':'<span class="approx">· date previste</span>'}${ev.mine?'<span>· tuo</span>':''}</span></span></button>`;
+    <span class="evm">${dist?`<span class="dist">${dist}</span>`:''}<span class="prov">${esc(ev.p)}</span><span class="type">${TIPI[ev.t]}</span>${exact(ev)?'':stale(ev)?'<span class="chk">· da verificare</span>':'<span class="approx">· date previste</span>'}${ev.mine?'<span>· tuo</span>':''}</span></span></button>`;
 }
 
 /* ---------- views ---------- */
 function weekendRange(){const g=TODAY.getDay();const fri=g===0?add(TODAY,-2):g===6?add(TODAY,-1):add(TODAY,5-g);return {s:g===0?TODAY:fri<TODAY?TODAY:fri,e:add(fri,2)}}
+function foundCard(){
+  const p=pending(),n=(PROP.fonti||[]).length;
+  if(p.length)return `<button class="found" data-act="prop"><b>${p.length}</b><span>${p.length===1?'Nuovo evento trovato':'Nuovi eventi trovati'} sui tuoi siti<small>Tocca per controllarli e aggiungerli</small></span><span aria-hidden="true" style="flex:none">›</span></button>`;
+  return `<button class="found quiet" data-act="prop"><span>${n?'Siti controllati: '+n+(PROP.aggiornato?' · ultimo controllo '+fdate(new Date(PROP.aggiornato)):''):'Aggiungi i siti di eventi da controllare ogni settimana'}</span><span aria-hidden="true" style="flex:none">›</span></button>`;
+}
 function vProssimi(list){
   const w=weekendRange();
   const wk=occBetween(w.s,w.e,list);
   const ids=new Set(wk.map(o=>o.ev.id+iso(o.s)));
   const later=occBetween(add(w.e,1),add(TODAY,120),list).filter(o=>!ids.has(o.ev.id+iso(o.s)));
   let h=`<h3 class="sec">${TODAY.getDay()===0||TODAY.getDay()===6?'Questo weekend':'Il prossimo weekend'} <small>${+w.s===+w.e?GL[w.s.getDay()]+' '+w.s.getDate()+' '+MS[w.s.getMonth()]:w.s.getDate()+(w.s.getMonth()!==w.e.getMonth()?' '+MS[w.s.getMonth()]:'')+'–'+w.e.getDate()+' '+MS[w.e.getMonth()]}</small></h3>`;
-  h+=wk.length?`<div class="list">${wk.map(row).join('')}</div>`:`<div class="empty">Nessun evento in elenco per questo weekend con questi filtri.</div>`;
+  h+=wk.length?`<div class="list">${wk.map(o=>row(o)).join('')}</div>`:`<div class="empty">Nessun evento in elenco per questo weekend con questi filtri.</div>`;
   let cur='';
   later.forEach(o=>{const k=MESI[o.s.getMonth()].replace(/^./,c=>c.toUpperCase())+' '+o.s.getFullYear();if(k!==cur){if(cur)h+='</div>';cur=k;h+=`<h3 class="sec">${k}</h3><div class="list">`}h+=row(o)});
   if(cur)h+='</div>';
   if(!later.length&&!wk.length)h=`<div class="empty">Nessun evento nei prossimi mesi con questi filtri.</div>`;
-  return h;
+  return foundCard()+h;
 }
 function vCalendario(list){
   const m=st.mese?parseIso(st.mese+'-01'):new Date(TODAY.getFullYear(),TODAY.getMonth(),1);
   const from=new Date(m.getFullYear(),m.getMonth(),1),to=new Date(m.getFullYear(),m.getMonth()+1,0);
-  const os=occBetween(from,to,list);
+  const all=occBetween(from,to,list),os=all.filter(o=>o.e>=TODAY),past=all.filter(o=>o.e<TODAY);
   return `<div class="monthnav"><button class="navbtn" data-act="mese" data-v="-1" aria-label="Mese precedente">‹</button><h2>${MESI[m.getMonth()]} ${m.getFullYear()}</h2><button class="navbtn" data-act="mese" data-v="1" aria-label="Mese successivo">›</button></div>
-  <p class="note" style="margin:0 0 10px">${os.length} ${os.length===1?'evento':'eventi'}${st.prov!=='tutte'?' in provincia di '+PROVINCE[st.prov]:' in Veneto'}</p>
-  ${os.length?`<div class="list">${os.map(row).join('')}</div>`:`<div class="empty">Nessun evento in questo mese con questi filtri.</div>`}`;
+  <p class="note" style="margin:0 0 10px">${all.length} ${all.length===1?'evento':'eventi'}${st.prov!=='tutte'?' in provincia di '+PROVINCE[st.prov]:' in Veneto'}${past.length&&os.length?' · '+os.length+' ancora da venire':''}</p>
+  ${os.length?`<div class="list">${os.map(o=>row(o)).join('')}</div>`:past.length?`<div class="empty">Gli eventi di questo mese sono già passati.</div>`:`<div class="empty">Nessun evento in questo mese con questi filtri.</div>`}
+  ${past.length?`<details class="past"><summary>Già passati (${past.length})</summary><div class="list">${past.map(o=>row(o)).join('')}</div></details>`:''}`;
 }
 function vPreferiti(list){
   const favs=list.filter(ev=>st.fav.includes(ev.id)).map(ev=>{const o=nextOcc(ev);return o?{ev,s:o.s,e:o.e}:null}).filter(Boolean).sort((a,b)=>a.s-b.s);
-  return favs.length?`<h3 class="sec">I tuoi preferiti <small>in ordine di data</small></h3><div class="list">${favs.map(row).join('')}</div>`
+  return favs.length?`<h3 class="sec">I tuoi preferiti <small>in ordine di data</small></h3><div class="list">${favs.map(o=>row(o)).join('')}</div>`
    :`<div class="empty">Nessun preferito ancora.<br>Apri un evento e tocca <b>★ Salva nei preferiti</b>.</div>`;
 }
 
@@ -288,7 +321,7 @@ function periodRange(k){
   return weekendRange();
 }
 function km(a,b){const R=6371,r=x=>x*Math.PI/180,dl=r(b[0]-a[0]),dn=r(b[1]-a[1]);const h=Math.sin(dl/2)**2+Math.cos(r(a[0]))*Math.cos(r(b[0]))*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
-const placeOf=ev=>LUOGHI[ev.c+'|'+ev.p]||null;
+const placeOf=ev=>ev.ll||LUOGHI[ev.c+'|'+ev.p]||null;
 function centro(){return st.centro||{ll:[45.407,11.876],nome:'Padova'}}
 function radarData(list){
   const rng=periodRange(st.periodo||'weekend'),c=centro(),R=st.raggio===undefined?25:st.raggio;
@@ -360,6 +393,18 @@ function openSheet(h){$('#sheetBody').innerHTML=h;$('#sheetWrap').hidden=false;d
 function closeSheet(){$('#sheetWrap').hidden=true;$('#sheetBody').innerHTML='';document.body.style.overflow=''}
 let tt=0;function toast(t){const el=$('#toast');el.textContent=t;el.hidden=false;clearTimeout(tt);tt=setTimeout(()=>el.hidden=true,2400)}
 const gcal=(ev,o)=>'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(ev.n)+'&dates='+iso(o.s).replace(/-/g,'')+'/'+iso(add(o.e,1)).replace(/-/g,'')+'&location='+encodeURIComponent(ev.c+', '+(PROVINCE[ev.p]||''))+'&details='+encodeURIComponent((ev.d||'')+(exact(ev)?'':'\nDate previste: verificare il programma ufficiale.'));
+function icsFile(ev,o){
+  const d=x=>iso(x).replace(/-/g,''),t=s=>String(s||'').replace(/([,;\\])/g,'\\$1').replace(/\n/g,'\\n');
+  const now=new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d+/,'');
+  const txt=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Lunario delle Sagre//IT','CALSCALE:GREGORIAN','BEGIN:VEVENT',
+    'UID:'+ev.id+'-'+d(o.s)+'@lunario-sagre','DTSTAMP:'+now,'DTSTART;VALUE=DATE:'+d(o.s),'DTEND;VALUE=DATE:'+d(add(o.e,1)),
+    'SUMMARY:'+t(ev.n),'LOCATION:'+t(ev.c+', '+(PROVINCE[ev.p]||'')),'DESCRIPTION:'+t((ev.d||'')+(exact(ev)?'':' Date previste: verifica il programma ufficiale.')),
+    'BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:'+t('Domani: '+ev.n),'TRIGGER:-PT6H','END:VALARM','END:VEVENT','END:VCALENDAR'].join('\r\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'text/calendar'}));
+  a.download=ev.n.replace(/[^\w\sàèéìòù-]/gi,'').trim().replace(/\s+/g,'-').slice(0,40)+'.ics';
+  document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000);
+  toast('Apri il file per aggiungerlo: ti avvisa il giorno prima');
+}
 const maps=ev=>'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(ev.c+', '+(PROVINCE[ev.p]||'')+', Italia');
 const gsearch=(ev,o)=>'https://www.google.com/search?q='+encodeURIComponent(ev.n+' '+ev.c+' '+o.s.getFullYear()+' programma');
 function openEvent(id,sIso){
@@ -372,11 +417,14 @@ function openEvent(id,sIso){
   <div class="when" style="--tc:var(--t-${ev.t})"><span class="lab">${TIPI[ev.t]} · ${o&&o.e<TODAY?'edizione passata':exact(ev)?'prossima data':'prossima edizione prevista'}</span>
     <span class="big">${o?frange(o.s,o.e):'—'}</span>
     <span class="s">Di solito: ${esc(descr(ev))}</span>
-    ${ev.u?`<span class="s">Ultima edizione nota: ${esc(ev.u)}</span>`:''}</div>
+    ${ev.u?`<span class="s">Ultima edizione nota: ${esc(ev.u)}</span>`:''}
+    ${stale(ev)?`<span class="s chk">Ultima conferma del ${lastYear(ev)}: controlla il programma prima di andare</span>`:''}</div>
   ${ev.d?`<p class="desc">${esc(ev.d)}</p>`:''}
   <div class="actions">
     <button class="btn ${fav?'':'primary'}" data-act="fav" data-id="${esc(ev.id)}">${fav?'★ Togli dai preferiti':'★ Salva nei preferiti'}</button>
+    ${o&&o.e>=TODAY?`<button class="btn" data-act="ics" data-id="${esc(ev.id)}" data-s="${iso(o.s)}">Aggiungi al calendario del telefono</button>`:''}
     ${o?`<a class="btn" href="${gcal(ev,o)}" target="_blank" rel="noopener">Aggiungi a Google Calendar</a>`:''}
+    ${ev.url?`<a class="btn" href="${esc(ev.url)}" target="_blank" rel="noopener">Pagina dell'evento</a>`:''}
     ${o?`<a class="btn" href="${gsearch(ev,o)}" target="_blank" rel="noopener">Cerca il programma ${o.s.getFullYear()}</a>`:''}
     <a class="btn" href="${maps(ev)}" target="_blank" rel="noopener">Apri in Maps</a>
     ${ev.mine?`<button class="btn" data-act="edit" data-id="${esc(ev.id)}">Modifica</button><button class="btn danger" data-act="del" data-id="${esc(ev.id)}">Elimina evento</button>`:''}
@@ -384,9 +432,31 @@ function openEvent(id,sIso){
   </div>
   ${!exact(ev)&&nx?'<p class="note" style="margin-top:14px">Data calcolata dal periodo abituale: verifica il programma ufficiale prima di andare.</p>':''}`);
 }
-function evForm(ev){
+function openProp(){
+  const p=pending(),f=PROP.fonti||[];
+  const old=EV.filter(stale).map(ev=>{const o=nextOcc(ev);return o&&{ev,s:o.s,e:o.e}}).filter(Boolean).sort((a,b)=>a.s-b.s).slice(0,40);
+  openSheet(`<h2>Eventi dai tuoi siti</h2>
+  <p class="place">${PROP.aggiornato?'Ultimo controllo: '+fdate(new Date(PROP.aggiornato))+'. ':''}I siti vengono controllati da soli ogni lunedì mattina.</p>
+  ${p.length?p.map(x=>{const s=parseIso(x.s),e=parseIso(x.e);return `<div class="prop"><span class="evt">${esc(x.n)}</span>
+    <span class="evs">${frange(s,e)}${x.c?' · '+esc(x.c):''}${x.p?' ('+esc(x.p)+')':''}</span>
+    ${x.d?`<span class="evm">${esc(x.d.slice(0,160))}</span>`:''}
+    <a class="src" href="${esc(x.url)}" target="_blank" rel="noopener">Vedi sul sito ↗</a>
+    <span class="pbtn"><button class="btn primary" data-act="propAdd" data-id="${esc(x.id)}">Aggiungi</button><button class="btn" data-act="propIgn" data-id="${esc(x.id)}">Ignora</button></span></div>`}).join('')
+    +(p.length>1?`<button class="btn ghost" style="width:100%;margin-bottom:6px" data-act="propIgnAll">Ignora tutti</button>`:'')
+   :`<div class="empty" style="margin-top:0">${f.length?'Nessun evento nuovo da controllare.':'Non hai ancora aggiunto siti da controllare.'}</div>`}
+  <h3 class="sec">I tuoi siti <small>${f.length}</small></h3>
+  ${f.map(x=>`<div class="src-row"><span>${esc(x.url.replace(/^https?:\/\/(www\.)?/,''))}</span><span>${x.ok?x.n+' trovati':'<span class="chk">'+esc(x.errore||'non letto')+'</span>'}</span></div>`).join('')}
+  <div class="actions" style="margin-top:14px">
+    <a class="btn primary" href="https://github.com/${REPO}/edit/main/fonti.txt" target="_blank" rel="noopener">Aggiungi o togli un sito</a>
+    <a class="btn" href="https://github.com/${REPO}/actions/workflows/scansiona.yml" target="_blank" rel="noopener">Controlla adesso (Run workflow)</a>
+  </div>
+  <p class="note" style="margin-top:10px">Lo scanner legge le date scritte sui siti: controlla sempre prima di aggiungere. Dopo un controllo, l'app si aggiorna in un paio di minuti.</p>
+  ${old.length?`<h3 class="sec">Da ricontrollare <small>ultima conferma vecchia</small></h3><div class="list">${old.map(o=>row(o)).join('')}</div>`:''}
+  <div class="actions" style="margin-top:14px"><button class="btn ghost" data-act="close">Chiudi</button></div>`);
+}
+function evForm(ev,pid){
   const m=ev||{};const fr=m.r&&(m.r.f||m.r.f2);const s=fr?fr[0]:iso(TODAY),e=fr?fr[1]:iso(TODAY);
-  openSheet(`<h2>${ev?'Modifica evento':'Nuovo evento'}</h2>
+  openSheet(`<h2>${m.id?'Modifica evento':'Nuovo evento'}</h2>
   <div class="field"><label for="fN">Nome</label><input class="in" id="fN" value="${esc(m.n||'')}" placeholder="Es. Sagra di San Rocco"></div>
   <div class="field"><label for="fC">Comune o luogo</label><input class="in" id="fC" value="${esc(m.c||'')}" placeholder="Es. Arsego"></div>
   <div class="row2"><div class="field"><label for="fP">Provincia</label><select class="in" id="fP">${REGIONI.Veneto.map(p=>`<option value="${p}" ${(m.p||'PD')===p?'selected':''}>${PROVINCE[p]}</option>`).join('')}</select></div>
@@ -394,7 +464,7 @@ function evForm(ev){
   <div class="row2"><div class="field"><label for="fS">Dal</label><input class="in" type="date" id="fS" value="${s}"></div><div class="field"><label for="fE">Al</label><input class="in" type="date" id="fE" value="${e}"></div></div>
   <label class="check"><input type="checkbox" id="fY" ${m.r&&m.r.ann?'checked':''}> Si ripete ogni anno nelle stesse date</label>
   <div class="field"><label for="fD">Note</label><input class="in" id="fD" value="${esc(m.d||'')}" placeholder="Cosa si mangia, con chi andare…"></div>
-  <div class="actions"><button class="btn primary" data-act="saveEv" data-id="${esc(m.id||'')}">Salva</button><button class="btn ghost" data-act="close">Annulla</button></div>`);
+  <div class="actions"><button class="btn primary" data-act="saveEv" data-id="${esc(m.id||'')}" data-pid="${esc(pid||'')}">Salva</button><button class="btn ghost" data-act="close">Annulla</button></div>`);
 }
 
 /* ---------- actions ---------- */
@@ -413,13 +483,23 @@ document.addEventListener('click',e=>{
   case 'close':closeSheet();break;
   case 'fav':{const on=st.fav.includes(id);st.fav=on?st.fav.filter(x=>x!==id):st.fav.concat(id);save();render();openEvent(id);toast(on?'Tolto dai preferiti':'Salvato nei preferiti');break}
   case 'add':evForm(null);break;
+  case 'prop':openProp();break;
+  case 'propIgn':st.ign.push(id);save();render();openProp();break;
+  case 'propIgnAll':pending().forEach(x=>st.ign.push(x.id));save();render();openProp();toast('Ignorati');break;
+  case 'propAdd':{const x=(PROP.eventi||[]).find(z=>z.id===id);if(!x)return;
+    evForm({n:x.n,c:x.c,p:REGIONI.Veneto.includes(x.p)?x.p:'PD',t:/auto|moto|motor|rally|raduno/i.test(x.n)?'A':/festa|palio|carneval|patrono/i.test(x.n)?'F':'S',r:{f:[x.s,x.e]},d:x.d||'',url:x.url,ll:x.ll},x.id);break}
+  case 'ics':{const ev=EV.find(z=>z.id===id);if(!ev)return;const s=parseIso(b.dataset.s);const o=occBetween(s,s,[ev]).find(z=>+z.s===+s)||nextOcc(ev);if(o)icsFile(ev,o);break}
   case 'edit':evForm(st.mine.find(x=>x.id===id));break;
   case 'del':{if(b.dataset.ok){st.mine=st.mine.filter(x=>x.id!==id);st.fav=st.fav.filter(x=>x!==id);save();closeSheet();render();toast('Evento eliminato')}else{b.dataset.ok='1';b.textContent='Tocca di nuovo per eliminare'}break}
   case 'saveEv':{const n=$('#fN').value.trim();if(!n){toast('Scrivi il nome');return}
     let s=$('#fS').value,en=$('#fE').value||s;if(!s){toast('Scegli la data');return}if(en<s)en=s;
     const ann=$('#fY').checked;const sd=parseIso(s),ed=parseIso(en);
     const r=ann?{d:[sd.getMonth()+1,sd.getDate(),Math.round((ed-sd)/DAY)+1],x:1,ann:1,f2:[s,en]}:{f:[s,en]};
-    const ev={id:id||('mio-'+Date.now().toString(36)),n,c:$('#fC').value.trim()||'—',p:$('#fP').value,t:$('#fT').value,r,d:$('#fD').value.trim(),u:''};
+    const old=st.mine.find(x=>x.id===id)||{},pid=b.dataset.pid,px=pid&&(PROP.eventi||[]).find(z=>z.id===pid)||{};
+    const c=$('#fC').value.trim()||'—';
+    const ev={id:id||('mio-'+Date.now().toString(36)),n,c,p:$('#fP').value,t:$('#fT').value,r,d:$('#fD').value.trim(),u:'',url:old.url||px.url||''};
+    const ll=old.ll||px.ll;if(ll&&(c===(old.c||px.c)))ev.ll=ll;
+    if(pid&&!st.ign.includes(pid))st.ign.push(pid);
     const i=st.mine.findIndex(x=>x.id===ev.id);if(i>=0)st.mine[i]=ev;else st.mine.push(ev);
     save();closeSheet();render();toast('Evento salvato');break}
   }
