@@ -146,21 +146,21 @@ function giaNoto(n, c) {
 }
 const PAROLE_EVENTO = /sagra|festa|fiera|mercat|palio|festival|rievoca|carneval|mostra|raduno|motor|auto|moto|trofeo|rally|concert|notte|degusta|vino|enogastr|evento|manifestaz|tradizion|antica|antico|patrono|san |santa |madonna|torneo|corsa|camminata|marcia/i;
 
-function analizza(html, base, provDefault) {
+function analizza(html, base, provDefault, night) {
   const strutt = daJsonLd(html, base);
   const grezzi = strutt.length ? strutt.map(x => Object.assign(x, { strutturato: 1 })) : daTesto(html, base);
-  const fine = new Date(OGGI.getTime() + MAX_GIORNI * 864e5);
+  const fine = new Date(OGGI.getTime() + (night ? 60 : MAX_GIORNI) * 864e5);
   const visti = new Set(), out = [];
   for (const x of grezzi) {
     if (x.e < OGGI || x.s > fine) continue;
     if ((x.e - x.s) / 864e5 > 60) continue;              // periodi troppo lunghi: probabilmente non sono un evento
-    if (!x.strutturato && !PAROLE_EVENTO.test(x.n + ' ' + x.d)) continue;
+    if (!night && !x.strutturato && !PAROLE_EVENTO.test(x.n + ' ' + x.d)) continue;
     const luogo = trovaLuogo(x.dove + ' ' + x.n, provDefault);
     if (luogo.p && !SIGLE.includes(luogo.p)) continue;
     const id = 'w-' + norm(x.n).replace(/ /g, '-').slice(0, 50) + '-' + iso(x.s);
     if (visti.has(id)) continue; visti.add(id);
-    if (giaNoto(x.n, luogo.c)) continue;
-    out.push({ id, n: x.n, c: luogo.c, p: luogo.p, ll: luogo.ll || undefined, s: iso(x.s), e: iso(x.e), url: x.url, d: x.d && x.d !== x.n ? x.d : '', fonte: base });
+    if (!night && giaNoto(x.n, luogo.c)) continue;
+    out.push({ id, n: x.n, c: luogo.c, p: luogo.p, ll: luogo.ll || undefined, s: iso(x.s), e: iso(x.e), url: x.url, d: x.d && x.d !== x.n ? x.d : '', fonte: base, t: night ? 'N' : undefined });
     if (out.length >= MAX_PER_SITO) break;
   }
   return out;
@@ -183,14 +183,14 @@ function leggiFonti() {
   const f = join(ROOT, 'fonti.txt');
   if (!existsSync(f)) return [];
   return readFileSync(f, 'utf8').split(/\r?\n/).map(r => r.trim()).filter(r => r && !r.startsWith('#'))
-    .map(r => { const [u, p] = r.split('|').map(x => x.trim()); return { url: u, p: (p || '').toUpperCase() }; })
+    .map(r => { const [u, p, t] = r.split('|').map(x => x.trim()); return { url: u, p: (p || '').toUpperCase(), night: /night|notte|locali/i.test(t || '') }; })
     .filter(x => /^https?:\/\//i.test(x.url));
 }
 
 async function main() {
   const arg = process.argv.slice(2);
   if (arg[0] === '--file') {
-    const res = analizza(readFileSync(arg[1], 'utf8'), 'https://esempio.it/', (arg[2] || '').toUpperCase());
+    const res = analizza(readFileSync(arg[1], 'utf8'), 'https://esempio.it/', (arg[2] || '').toUpperCase(), arg[3] === 'night');
     console.log(JSON.stringify(res, null, 1));
     return;
   }
@@ -199,8 +199,8 @@ async function main() {
   for (const f of fonti) {
     try {
       const html = await scarica(f.url);
-      const ev = analizza(html, f.url, f.p);
-      stato.push({ url: f.url, ok: 1, n: ev.length });
+      const ev = analizza(html, f.url, f.p, f.night);
+      stato.push({ url: f.url, ok: 1, n: ev.length, night: f.night ? 1 : undefined });
       for (const e of ev) if (!eventi.some(x => x.id === e.id)) eventi.push(e);
       console.log(`✓ ${f.url}: ${ev.length} eventi`);
     } catch (e) {

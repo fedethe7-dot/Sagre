@@ -1,11 +1,15 @@
 # Siti da controllare ogni settimana per trovare nuovi eventi.
 # Un link per riga. Le righe che iniziano con # vengono ignorate.
 # Facoltativo: dopo il link metti | e la sigla della provincia, se il sito parla di una sola provincia.
-# Esempio:
+# Per i siti di locali e serate aggiungi anche | night: quegli eventi vanno nella sezione Night,
+# compaiono da soli senza doverli approvare e spariscono quando sono passati.
+# Esempi:
 #   https://www.sitodellesagre.it/veneto/padova/ | PD
+#   https://www.sitodeilocali.it/padova/ | PD | night
 #
 # Dopo aver salvato, lo scanner gira da solo ogni lunedì mattina
 # (oppure subito: GitHub > Actions > "Scansiona siti eventi" > Run workflow).
 
-https://www.provincia.padova.it/calendario-eventi-sul-territorio-padovano#/eventi | PD
-https://2night.it/padova/eventi.html | PD
+# bloccato (403): non si lascia leggere in automatico
+# https://www.provincia.padova.it/calendario-eventi-sul-territorio-padovano#/eventi | PD
+https://2night.it/padova/eventi.html | PD | night
