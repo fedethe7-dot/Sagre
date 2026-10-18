@@ -6,6 +6,7 @@
 # Esempi:
 #   https://www.sitodellesagre.it/veneto/padova/ | PD
 #   https://www.sitodeilocali.it/padova/ | PD | night
+# Per il sito di un solo locale puoi aggiungere anche il nome:  link | | night | Nome del locale
 #
 # Dopo aver salvato, lo scanner gira da solo ogni lunedì mattina
 # (oppure subito: GitHub > Actions > "Scansiona siti eventi" > Run workflow).
@@ -13,3 +14,16 @@
 # bloccato (403): non si lascia leggere in automatico
 # https://www.provincia.padova.it/calendario-eventi-sul-territorio-padovano#/eventi | PD
 https://2night.it/padova/eventi.html | PD | night
+
+# --- Locali (Night) ---
+https://www.creazionisrl.it/villa-peggys/ | | night | Villa Peggy's
+https://www.lamulata.it/eventi#sectionEvt | | night | La Mulata
+https://www.creazionisrl.it/la-casa-dei-gelsi/ | | night | La Casa dei Gelsi
+
+# --- Sagre ed eventi ---
+https://www.parcocollieuganei.com/eventi.php#/eventi | PD
+https://www.asiago.it/it/eventi/ | VI
+https://jesolo.it/eventi/ | VE
+https://www.veneziatoday.it/eventi/ | VE
+https://www.vicenzatoday.it/eventi/ | VI
+https://www.visitdolomitibellunesi.com/it | BL

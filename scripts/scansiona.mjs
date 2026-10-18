@@ -183,8 +183,8 @@ function leggiFonti() {
   const f = join(ROOT, 'fonti.txt');
   if (!existsSync(f)) return [];
   return readFileSync(f, 'utf8').split(/\r?\n/).map(r => r.trim()).filter(r => r && !r.startsWith('#'))
-    .map(r => { const [u, p, t] = r.split('|').map(x => x.trim()); return { url: u, p: (p || '').toUpperCase(), night: /night|notte|locali/i.test(t || '') }; })
-    .filter(x => /^https?:\/\//i.test(x.url));
+    .map(r => { const [u, p, t, nome] = r.split('|').map(x => x.trim()); return { url: /^https?:/i.test(u) ? u : 'https://' + u, p: (p || '').toUpperCase(), night: /night|notte|locali/i.test(t || ''), nome: nome || '' }; })
+    .filter(x => /^https?:\/\/[^/\s]+\.[a-z]{2,}/i.test(x.url));
 }
 
 async function main() {
@@ -200,6 +200,7 @@ async function main() {
     try {
       const html = await scarica(f.url);
       const ev = analizza(html, f.url, f.p, f.night);
+      if (f.nome) ev.forEach(e => { if (!e.c) e.c = f.nome; });
       stato.push({ url: f.url, ok: 1, n: ev.length, night: f.night ? 1 : undefined });
       for (const e of ev) if (!eventi.some(x => x.id === e.id)) eventi.push(e);
       console.log(`✓ ${f.url}: ${ev.length} eventi`);
