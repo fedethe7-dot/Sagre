@@ -261,7 +261,7 @@ async function main() {
         if (h2) {
           const ev2 = analizza(h2, f.url, f.p, f.night);
           if (ev2.length) { ev = ev2; errore = null; }
-          if (process.env.DEBUG_DIR && !ev2.length) { mkdirSync(process.env.DEBUG_DIR, { recursive: true }); writeFileSync(join(process.env.DEBUG_DIR, f.url.replace(/[^a-z0-9]+/gi, '_').slice(0, 80) + '.html'), h2); }
+          if (process.env.DEBUG_DIR && ev2.length < 3) { mkdirSync(process.env.DEBUG_DIR, { recursive: true }); writeFileSync(join(process.env.DEBUG_DIR, f.url.replace(/[^a-z0-9]+/gi, '_').slice(0, 80) + '.html'), h2); }
         }
       }
       if (errore && !ev.length) throw errore;
