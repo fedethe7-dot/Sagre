@@ -31,14 +31,6 @@ jobs:
         run: node scripts/scansiona.mjs
         env:
           DEBUG_DIR: debug
-      - name: Pagine senza eventi (per controllo)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: pagine-vuote
-          path: debug/
-          if-no-files-found: ignore
-          retention-days: 7
       - name: Salva i risultati
         env:
           GH_TOKEN: ${{ github.token }}
@@ -51,3 +43,10 @@ jobs:
           git push
           # aggiorna subito il sito pubblicato
           gh api -X POST "repos/${{ github.repository }}/pages/builds" || true
+      - name: Pagine senza eventi (ramo debug-scanner, per controllo)
+        if: always()
+        run: |
+          [ -d debug ] || exit 0
+          mv debug /tmp/debug && cd /tmp/debug && git init -q && git checkout -q -b debug-scanner
+          git config user.name "scanner-sagre"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A && git commit -q -m "pagine vuote" && git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" debug-scanner
