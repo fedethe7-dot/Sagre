@@ -7,3 +7,5 @@
 # Dopo aver salvato, lo scanner gira da solo ogni lunedì mattina
 # (oppure subito: GitHub > Actions > "Scansiona siti eventi" > Run workflow).
 
+https://www.provincia.padova.it/calendario-eventi-sul-territorio-padovano#/eventi | PD
+https://2night.it/padova/eventi.html | PD
