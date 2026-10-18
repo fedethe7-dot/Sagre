@@ -23,6 +23,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+      - name: Prepara il browser per i siti che caricano con JavaScript
+        run: |
+          npm install --no-save --no-package-lock playwright@1.48.2
+          npx playwright install --with-deps chromium
       - name: Cerca eventi sui siti di fonti.txt
         run: node scripts/scansiona.mjs
       - name: Salva i risultati

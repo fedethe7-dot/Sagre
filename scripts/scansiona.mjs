@@ -140,6 +140,20 @@ function daTesto(html, base) {
   return out;
 }
 
+// tutti i link della pagina con il loro testo, per collegare ogni evento alla sua pagina
+function linkPagina(html, base) {
+  const out = [];
+  for (const m of html.matchAll(/<a\b[^>]*href="([^"#][^"]*)"[^>]*>([\s\S]*?)<\/a>/gi)) {
+    const t = norm(testo(m[2]) || (m[0].match(/title="([^"]+)"/) || [])[1] || '');
+    if (t.length > 8) out.push({ t, href: assoluto(m[1], base) });
+  }
+  return out;
+}
+function linkPer(n, links, base) {
+  const a = norm(n);
+  const x = links.find(l => l.t === a) || links.find(l => (l.t.includes(a) || a.includes(l.t)) && Math.min(a.length, l.t.length) > 12);
+  return x && x.href !== base ? x.href : null;
+}
 function giaNoto(n, c) {
   const a = norm(n);
   return NOMI_NOTI.some(x => (x.n.length > 6 && (a.includes(x.n) || x.n.includes(a))) && (!c || !x.c || x.c.includes(norm(c).split(' ')[0])));
@@ -150,7 +164,7 @@ function analizza(html, base, provDefault, night) {
   const strutt = daJsonLd(html, base);
   const grezzi = strutt.length ? strutt.map(x => Object.assign(x, { strutturato: 1 })) : daTesto(html, base);
   const fine = new Date(OGGI.getTime() + (night ? 60 : MAX_GIORNI) * 864e5);
-  const visti = new Set(), out = [];
+  const visti = new Set(), out = [], links = linkPagina(html, base);
   for (const x of grezzi) {
     if (x.e < OGGI || x.s > fine) continue;
     if ((x.e - x.s) / 864e5 > 60) continue;              // periodi troppo lunghi: probabilmente non sono un evento
@@ -161,6 +175,8 @@ function analizza(html, base, provDefault, night) {
     if (visti.has(id)) continue; visti.add(id);
     if (!night && giaNoto(x.n, luogo.c)) continue;
     out.push({ id, n: x.n, c: luogo.c, p: luogo.p, ll: luogo.ll || undefined, s: iso(x.s), e: iso(x.e), url: x.url, d: x.d && x.d !== x.n ? x.d : '', fonte: base, t: night ? 'N' : undefined });
+    const ultimo = out[out.length - 1];
+    if (ultimo && ultimo.url === base) ultimo.url = linkPer(x.n, links, base) || base;
     if (out.length >= MAX_PER_SITO) break;
   }
   return out;
@@ -187,6 +203,24 @@ function leggiFonti() {
     .filter(x => /^https?:\/\/[^/\s]+\.[a-z]{2,}/i.test(x.url));
 }
 
+// Pagine che caricano gli eventi con JavaScript (o che bloccano i download semplici): le apro con un vero browser
+let BROWSER = null;
+async function apriConBrowser(url) {
+  if (BROWSER === false) return null;
+  try {
+    if (!BROWSER) { const { chromium } = await import('playwright'); BROWSER = await chromium.launch(); }
+    const pg = await BROWSER.newPage({ locale: 'it-IT', userAgent: 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Mobile Safari/537.36' });
+    try {
+      await pg.goto(url, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
+      for (let i = 0; i < 4; i++) { await pg.mouse.wheel(0, 4000); await pg.waitForTimeout(800); }
+      // a volte gli eventi sono dentro un riquadro (iframe): prendo anche quelli
+      let html = await pg.content();
+      for (const f of pg.frames().slice(1)) { try { html += await f.content(); } catch {} }
+      return html;
+    } finally { await pg.close(); }
+  } catch (e) { if (!BROWSER) BROWSER = false; console.log('  (browser non disponibile: ' + (e.message || e).split('\n')[0] + ')'); return null; }
+}
+
 async function main() {
   const arg = process.argv.slice(2);
   if (arg[0] === '--file') {
@@ -198,8 +232,13 @@ async function main() {
   const stato = [], eventi = [];
   for (const f of fonti) {
     try {
-      const html = await scarica(f.url);
-      const ev = analizza(html, f.url, f.p, f.night);
+      let ev = [], html = null, errore = null;
+      try { html = await scarica(f.url); ev = analizza(html, f.url, f.p, f.night); } catch (e) { errore = e; }
+      if (!ev.length) {
+        const h2 = await apriConBrowser(f.url);
+        if (h2) { const ev2 = analizza(h2, f.url, f.p, f.night); if (ev2.length || !html) { ev = ev2; errore = null; } }
+      }
+      if (errore && !ev.length) throw errore;
       if (f.nome) ev.forEach(e => { if (!e.c) e.c = f.nome; });
       stato.push({ url: f.url, ok: 1, n: ev.length, night: f.night ? 1 : undefined });
       for (const e of ev) if (!eventi.some(x => x.id === e.id)) eventi.push(e);
@@ -216,4 +255,4 @@ async function main() {
     ',\n"fonti":[' + stato.map(x => '\n' + JSON.stringify(x)).join(',') + '],\n"eventi":[' + eventi.map(x => '\n' + JSON.stringify(x)).join(',') + ']};\n');
   console.log(`Totale: ${eventi.length} eventi da ${fonti.length} siti`);
 }
-main().catch(e => { console.error(e); process.exit(1); });
+main().then(() => BROWSER && BROWSER.close()).catch(e => { console.error(e); process.exit(1); });
