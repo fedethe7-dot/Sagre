@@ -26,4 +26,4 @@ https://www.asiago.it/it/eventi/ | VI
 https://jesolo.it/eventi/ | VE
 https://www.veneziatoday.it/eventi/ | VE
 https://www.vicenzatoday.it/eventi/ | VI
-https://www.visitdolomitibellunesi.com/it | BL
+https://www.visitdolomitibellunesi.com/it/eventi/calendario-eventi | BL

@@ -116,14 +116,25 @@ function daTesto(html, base) {
   const pezzi = pulito.split(/(?=<(?:h[1-6]|article|li|p|tr|div|section|dt|dd)\b)/i);
   const out = [];
   let titolo = '', titoloLink = '', distanza = 9;
+  let attesa = null; // data trovata da sola: il titolo arriva nel blocco subito dopo (schede "data sopra, titolo sotto")
   for (const h of pezzi) {
     const t = testo(h);
     if (!t) continue;
     const isTitolo = /^<h[1-6]/i.test(h) || (t.length < 110 && /^<(?:div|li|p)[^>]*class="[^"]*(title|titolo|nome|heading)/i.test(h));
     const link = (h.match(/<a\b[^>]*href="([^"#][^"]*)"/i) || [])[1];
     const date = trovaDate(t);
+    const soloData = date.length && t.replace(/\b(lun|mar|mer|gio|ven|sab|dom)[a-zì]*\b/gi, '').replace(/[\d\s\/.,:–-]+/g, ' ').trim().split(' ').length <= 3 && t.length < 40;
+    if (attesa && !date.length) {
+      const pulito = t.replace(/^\d{1,2}[.\/]\d{1,2}\s+/, '');
+      if ((isTitolo || (link && t.length < 140)) && pulito.length >= 5) {
+        out.push({ n: pulito.slice(0, 120), s: attesa.s, e: attesa.e, dove: t, url: link ? assoluto(link, base) : base, d: '' });
+        attesa = null; continue;
+      }
+      if (++attesa.giri > 3) attesa = null;
+    }
     if (isTitolo && !date.length) { titolo = t.slice(0, 140); titoloLink = link ? assoluto(link, base) : ''; distanza = 0; continue; }
     distanza++;
+    if (soloData) { attesa = { s: date[0].s, e: date[0].e, giri: 0 }; continue; }
     if (!date.length || t.length > 900) continue;
     const d = date[0];
     // titolo: un link o grassetto nel blocco, altrimenti il titolo sopra, altrimenti l'inizio del testo
@@ -212,6 +223,7 @@ async function apriConBrowser(url) {
     const pg = await BROWSER.newPage({ locale: 'it-IT', userAgent: 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Mobile Safari/537.36' });
     try {
       await pg.goto(url, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
+      await pg.waitForTimeout(3000);
       for (let i = 0; i < 4; i++) { await pg.mouse.wheel(0, 4000); await pg.waitForTimeout(800); }
       // a volte gli eventi sono dentro un riquadro (iframe): prendo anche quelli
       let html = await pg.content();
