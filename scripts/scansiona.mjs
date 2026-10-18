@@ -3,7 +3,7 @@
 // e scrive proposte.js: l'app li mostra in "Eventi trovati sui tuoi siti" da controllare.
 // Uso: node scripts/scansiona.mjs            (scarica i siti)
 //      node scripts/scansiona.mjs --file pagina.html [PD]   (prova su un file locale)
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -229,6 +229,9 @@ async function main() {
     return;
   }
   const fonti = leggiFonti();
+  let prima = { eventi: [] };
+  try { prima = new Function(readFileSync(join(ROOT, 'proposte.js'), 'utf8') + ';return PROPOSTE;')() || prima; } catch {}
+  const oggiIso = iso(OGGI);
   const stato = [], eventi = [];
   for (const f of fonti) {
     try {
@@ -236,7 +239,11 @@ async function main() {
       try { html = await scarica(f.url); ev = analizza(html, f.url, f.p, f.night); } catch (e) { errore = e; }
       if (!ev.length) {
         const h2 = await apriConBrowser(f.url);
-        if (h2) { const ev2 = analizza(h2, f.url, f.p, f.night); if (ev2.length || !html) { ev = ev2; errore = null; } }
+        if (h2) {
+          const ev2 = analizza(h2, f.url, f.p, f.night);
+          if (ev2.length) { ev = ev2; errore = null; }
+          if (process.env.DEBUG_DIR && !ev2.length) { mkdirSync(process.env.DEBUG_DIR, { recursive: true }); writeFileSync(join(process.env.DEBUG_DIR, f.url.replace(/[^a-z0-9]+/gi, '_').slice(0, 80) + '.html'), h2); }
+        }
       }
       if (errore && !ev.length) throw errore;
       if (f.nome) ev.forEach(e => { if (!e.c) e.c = f.nome; });
@@ -244,7 +251,9 @@ async function main() {
       for (const e of ev) if (!eventi.some(x => x.id === e.id)) eventi.push(e);
       console.log(`✓ ${f.url}: ${ev.length} eventi`);
     } catch (e) {
-      stato.push({ url: f.url, ok: 0, n: 0, errore: String(e.name === 'AbortError' ? 'il sito non risponde' : e.message || e) });
+      const vecchi = (prima.eventi || []).filter(x => x.fonte === f.url && x.e >= oggiIso);
+      for (const x of vecchi) if (!eventi.some(y => y.id === x.id)) eventi.push(x);
+      stato.push({ url: f.url, ok: 0, n: vecchi.length, errore: String(e.name === 'AbortError' ? 'il sito non risponde' : e.message || e) });
       console.log(`✗ ${f.url}: ${e.message || e}`);
     }
   }

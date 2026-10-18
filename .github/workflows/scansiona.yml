@@ -29,6 +29,16 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Cerca eventi sui siti di fonti.txt
         run: node scripts/scansiona.mjs
+        env:
+          DEBUG_DIR: debug
+      - name: Pagine senza eventi (per controllo)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pagine-vuote
+          path: debug/
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Salva i risultati
         env:
           GH_TOKEN: ${{ github.token }}
