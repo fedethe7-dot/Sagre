@@ -1,11 +1,11 @@
 /* Generato da scripts/scansiona.mjs: eventi trovati sui siti di fonti.txt. Non modificare a mano. */
-const PROPOSTE = {"aggiornato":"2026-10-18T15:39:32.652Z",
+const PROPOSTE = {"aggiornato":"2026-10-18T15:45:30.950Z",
 "fonti":[
 {"url":"https://2night.it/padova/eventi.html","ok":1,"n":15,"night":1},
 {"url":"https://www.creazionisrl.it/villa-peggys/","ok":1,"n":1,"night":1},
 {"url":"https://www.lamulata.it/eventi#sectionEvt","ok":1,"n":0,"night":1},
 {"url":"https://www.creazionisrl.it/la-casa-dei-gelsi/","ok":1,"n":18,"night":1},
-{"url":"https://www.parcocollieuganei.com/eventi.php#/eventi","ok":1,"n":0},
+{"url":"https://www.parcocollieuganei.com/eventi.php#/eventi","ok":1,"n":1},
 {"url":"https://www.asiago.it/it/eventi/","ok":1,"n":0},
 {"url":"https://jesolo.it/eventi/","ok":1,"n":10},
 {"url":"https://www.veneziatoday.it/eventi/","ok":1,"n":8},
@@ -70,4 +70,5 @@ const PROPOSTE = {"aggiornato":"2026-10-18T15:39:32.652Z",
 {"id":"w-sfera-ebbasta-2027-2027-01-27","n":"Sfera Ebbasta 2027","c":"","p":"VE","s":"2027-01-27","e":"2027-01-27","url":"https://jesolo.it/event-1/sfera-ebbasta-2027/","d":"<p>Sfera Ebbasta arriva a Jesolo con il suo Live Tour 2027: mercoledì 27 gennaio 2027 il trap king italiano sarà protagonista al Pala Turismo per la data zero della tournée indoor che lo porterà successivamente nei princ","fonte":"https://jesolo.it/eventi/"},
 {"id":"w-gianna-nannini-in-concerto-2027-2027-03-29","n":"Gianna Nannini in concerto 2027","c":"","p":"VE","s":"2027-03-29","e":"2027-03-29","url":"https://jesolo.it/event-1/gianna-nannini-in-concerto-2027/","d":"<p>La grinta e l’energia di Gianna Nannini arrivano a Jesolo con il nuovo GIANNAGOLD – CELEBRATION TOUR – LIVE 2027.</p>\\n","fonte":"https://jesolo.it/eventi/"},
 {"id":"w-jesolo-beach-kite-2027-2027-04-09","n":"Jesolo Beach & Kite 2027","c":"Jesolo","p":"VE","ll":[45.54,12.72],"s":"2027-04-09","e":"2027-04-11","url":"https://jesolo.it/event-1/jesolo-beach-kite-2027/","d":"<p>Dal 9 all’11 aprile 2027 torna sulla spiaggia di Jesolo il Jesolo Beach & Kite Festival, il grande appuntamento dedicato al mondo degli aquiloni che ogni primavera porta sul litorale spettacolo, creatività e sport.</p","fonte":"https://jesolo.it/eventi/"},
-{"id":"w-ironman-70-3-venice-jesolo-2027-2027-04-24","n":"IRONMAN 70.3 Venice-Jesolo 2027","c":"Jesolo","p":"VE","ll":[45.54,12.72],"s":"2027-04-24","e":"2027-04-24","url":"https://jesolo.it/event-1/ironman-70-3-venice-jesolo-2027/","d":"<p>Jesolo torna ad ospitare uno degli appuntamenti più attesi del calendario internazionale del triathlon. Il 24 aprile 2027 andrà in scena la nuova edizione dell\\'IRONMAN 70.3 Venice-Jesolo, la gara che si è ormai affer","fonte":"https://jesolo.it/eventi/"}]};
+{"id":"w-ironman-70-3-venice-jesolo-2027-2027-04-24","n":"IRONMAN 70.3 Venice-Jesolo 2027","c":"Jesolo","p":"VE","ll":[45.54,12.72],"s":"2027-04-24","e":"2027-04-24","url":"https://jesolo.it/event-1/ironman-70-3-venice-jesolo-2027/","d":"<p>Jesolo torna ad ospitare uno degli appuntamenti più attesi del calendario internazionale del triathlon. Il 24 aprile 2027 andrà in scena la nuova edizione dell\\'IRONMAN 70.3 Venice-Jesolo, la gara che si è ormai affer","fonte":"https://jesolo.it/eventi/"},
+{"id":"w-museo-san-paolo-via-2027-04-28","n":"Museo San Paolo, via","c":"Monselice","p":"PD","ll":[45.242,11.75],"s":"2027-04-28","e":"2027-04-28","url":"https://www.parcocollieuganei.com/eventi.php#/eventi/TRN/5209fbd6-c622-40f5-8c6b-2fe4a8ca831c/il-presepe-narrante-di-alberto-roveroni","d":"Museo San Paolo, via 28 Aprile 1 , Monselice","fonte":"https://www.parcocollieuganei.com/eventi.php#/eventi"}]};
