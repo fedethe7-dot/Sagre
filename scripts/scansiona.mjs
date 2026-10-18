@@ -224,9 +224,16 @@ async function apriConBrowser(url) {
     try {
       await pg.goto(url, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
       await pg.waitForTimeout(3000);
-      for (let i = 0; i < 4; i++) { await pg.mouse.wheel(0, 4000); await pg.waitForTimeout(800); }
+      for (let i = 0; i < 6; i++) { await pg.mouse.wheel(0, 4000); await pg.waitForTimeout(1000); }
       // a volte gli eventi sono dentro un riquadro (iframe): prendo anche quelli
       let html = await pg.content();
+      // alcuni siti (es. moduli Deskline/feratel) mettono gli eventi dentro componenti "shadow DOM": li apro
+      html += await pg.evaluate(() => {
+        const out = [];
+        const giro = root => root.querySelectorAll('*').forEach(el => { if (el.shadowRoot) { out.push('<div>' + el.shadowRoot.innerHTML + '</div>'); giro(el.shadowRoot); } });
+        giro(document);
+        return out.join('\n');
+      }).catch(() => '');
       for (const f of pg.frames().slice(1)) { try { html += await f.content(); } catch {} }
       return html;
     } finally { await pg.close(); }
