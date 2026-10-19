@@ -1,6 +1,7 @@
 /* Coordinate indicative dei luoghi (centro del paese o della frazione).
    Chiave: "luogo|provincia" esattamente come in eventi.js. Valore: [latitudine, longitudine] */
 const LUOGHI = {
+'Abano Terme|PD':[45.360,11.790],'Auronzo di Cadore|BL':[46.553,12.438],'Fonzaso|BL':[46.027,11.827],'Cordignano|TV':[45.987,12.395],'Maser|TV':[45.810,11.995],'Combai, Miane|TV':[45.913,12.038],'Vigasio|VR':[45.320,10.950],
 'Albignasego|PD':[45.355,11.857],'Anguillara Veneta|PD':[45.138,11.885],'Arquà Petrarca|PD':[45.270,11.718],
 'Arsego, San Giorgio delle Pertiche|PD':[45.580,11.935],'Bagnoli di Sopra|PD':[45.188,11.880],'Baone|PD':[45.245,11.687],
 'Bastia di Rovolon|PD':[45.380,11.660],'Battaglia Terme|PD':[45.290,11.780],'Borgoricco|PD':[45.535,11.940],
