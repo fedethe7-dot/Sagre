@@ -47,6 +47,7 @@ const LUOGHI = {
 'Negrar di Valpolicella|VR':[45.530,10.938],'Piazza dei Signori, Verona|VR':[45.443,10.998],'San Giovanni Ilarione|VR':[45.520,11.237],
 'Soave|VR':[45.420,11.246],'Valeggio sul Mincio|VR':[45.354,10.735],'Verona|VR':[45.438,10.992],
 
+'Lusia|RO':[45.020,11.700],'Canaro|RO':[44.951,11.667],'Scardovari, Porto Tolle|RO':[44.860,12.460],'Oca Marina, Porto Tolle|RO':[44.960,12.360],'Occhiobello|RO':[44.920,11.550],'Ceneselli|RO':[44.980,11.350],'Rovigo|RO':[45.070,11.790],
 'Lendinara|RO':[45.084,11.597],'Porto Tolle|RO':[44.950,12.330],'Rasa, Lendinara|RO':[45.090,11.560],
 
 'Cortina d\'Ampezzo|BL':[46.540,12.136],'Feltre|BL':[46.018,11.910],'Lamon|BL':[46.047,11.746],

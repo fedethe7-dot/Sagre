@@ -83,7 +83,7 @@ const EVENTI = [
 ['pd-caseus','Caseus','Villa Contarini, Piazzola sul Brenta','PD','M',{w:[10,1,1,0]},'Rassegna dei formaggi veneti in villa.','4–5 ott 2025'],
 ['pd-rosario-bagnoli','Sagra del Rosario','Bagnoli di Sopra','PD','S',{d:[9,25,12],q:'ultimo weekend di settembre e primi di ottobre (fiera il primo lunedì di ottobre)'},'Trippa, baccalà e vino Friularo.','25–27 set 2026'],
 ['pd-friularo','Festa del Vin Friularo','Bagnoli di Sopra','PD','S',{w:[11,3,0,0]},'Il vino Friularo di Bagnoli.','15 nov 2026'],
-['pd-martino-piazzola','Antica Fiera di San Martino','Piazzola sul Brenta','PD','M',{d:[11,8,9]},'Fiera con giostre, banchi e stand attorno all\'11 novembre.','8–16 nov 2025'],
+['pd-martino-piazzola','Antica Fiera di San Martino','Piazzola sul Brenta','PD','M',{d:[11,7,9]},'Fiera con giostre, banchi e stand attorno all\'11 novembre.','7–15 nov 2026'],
 ['pd-martino-piove','Fiera Franca di San Martino','Piove di Sacco','PD','M',{d:[11,11,1],x:1},'Fiera franca l\'11 novembre, la fiera ordinaria la domenica prima.','11 novembre'],
 ['pd-andrea-tombolo','Festa di Sant\'Andrea','Tombolo','PD','S',{d:[11,18,16]},'Lesso misto, su tre weekend. Si prenota.','fine nov–inizio dic'],
 ['pd-gallina','Fiera della Gallina di Polverara','Polverara','PD','M',{d:[11,28,11]},'La gallina di Polverara, razza antica col ciuffo.','28 nov–8 dic 2026'],
@@ -213,6 +213,13 @@ const EVENTI = [
 ['ro-riso','Festa del Riso','Porto Tolle','RO','S',{w:[9,3,3,0]},'Riso del Delta del Po IGP.','17–20 set 2026'],
 ['ro-lendinara','Fiera di San Marco','Lendinara','RO','M',{d:[4,25,1],x:1},'Fiera di San Marco.','25 aprile'],
 ['ro-rasa','Sagra Paesana di Rasa','Rasa, Lendinara','RO','S',{d:[7,10,6]},'Sagra di paese a luglio.','10–15 lug 2026'],
+['ro-lusia','Fiera di Lusia','Lusia','RO','M',{d:[7,10,10]},'Fiera estiva di paese con luna park, stand e serate musicali.','10–19 lug 2026'],
+['ro-canaro-bigul','Sagra del Bigul al Torc','Canaro','RO','S',{d:[6,19,10]},'Sagra del bigolo al torchio, la pasta fresca polesana, con stand e musica.','19–28 giu 2026'],
+['ro-scardovari','Sagra dei SS. Pietro e Paolo - Festa del Pescatore','Scardovari, Porto Tolle','RO','S',{d:[6,25,5]},'Festa dei pescatori del Delta del Po con pesce e molluschi di Scardovari.','25–29 giu 2026'],
+['ro-ocamarina','Sagra di San Luigi','Oca Marina, Porto Tolle','RO','S',{d:[6,18,4]},'Sagra di paese nel Delta del Po a metà giugno.','18–21 giu 2026'],
+['ro-occhiobello-lorenzo','Sagra di San Lorenzo','Occhiobello','RO','S',{d:[8,8,7]},'Sagra di San Lorenzo con cucina tipica e serate in piazza.','8–14 ago 2026'],
+['ro-ceneselli-bigul','I Bigul al Torch','Ceneselli','RO','S',{d:[8,21,5]},'Festa dei bigoli al torchio a fine agosto.','21–25 ago 2026'],
+['ro-fiera-ottobre','Fiera d\'Ottobre','Rovigo','RO','M',{d:[10,24,4]},'Fiera d\'ottobre di Rovigo con bancarelle e luna park.','24–27 ott 2026'],
 
 /* ---------------- BELLUNO ---------------- */
 ['bl-feltre','Palio di Feltre','Feltre','BL','F',{w:[8,1]},'Palio dei quattro quartieri e rievocazione rinascimentale.','31 lug–2 ago 2026'],
