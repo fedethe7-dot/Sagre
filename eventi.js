@@ -100,6 +100,7 @@ const EVENTI = [
 ['pd-abano-halloween','Abano Street Halloween','Abano Terme','PD','F',{d:[10,30,3]},'Halloween in strada ad Abano con maschere, musica e animazione nel centro.','30 ott–1 nov 2026'],
 ['pd-contarini-vino','Villa Contarini in Vino','Villa Contarini, Piazzola sul Brenta','PD','S',{w:[10,4,1,0]},'Degustazioni di vini e sapori d\'autunno nella villa palladiana.','24–25 ott 2026'],
 ['pd-colori-sapori-monselice','Colori e Sapori d\'Autunno','Monselice','PD','S',{w:[10,4,1,0]},'Weekend autunnale con prodotti tipici e mercatini nel centro storico.','24–25 ott 2026'],
+['pd-zafferano-monselice','Festa dello zafferano dei Colli Euganei','Monselice','PD','F',{d:[10,31,1]},'Alla scoperta della storia dello zafferano dei Colli Euganei.','31 ott 2026'],
 
 /* ---------------- VENEZIA ---------------- */
 ['ve-carnevale','Carnevale di Venezia','Venezia','VE','G',{e:[-58,12],q:'le due settimane prima del Martedì Grasso'},'Maschere, Volo dell\'Angelo e feste in tutta la città.','ogni anno, data legata alla Pasqua'],
