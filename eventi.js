@@ -188,6 +188,7 @@ const EVENTI = [
 ['tv-prealpi-festa','Prealpi in Festa','Cordignano','TV','S',{w:[11,2,4,0]},'Festa d\'autunno ai piedi delle Prealpi con stand gastronomici e prodotti locali.','4–8 nov 2026'],
 ['tv-olio-villa','Olio in Villa','Maser','TV','S',{w:[11,-1,0,0]},'Festa dell\'olio novello nella cornice di Maser.','29 nov 2026'],
 ['tv-marroni-combai','Festa dei Marroni di Combai','Combai, Miane','TV','S',{d:[10,9,24]},'Marroni di Combai IGP nei weekend d\'autunno.','9 ott–1 nov 2026'],
+['tv-santa-lucia-fiere','Fiere di Santa Lucia','Santa Lucia di Piave','TV','M',{w:[12,2,1,1]},'Fiera millenaria dell\'agricoltura nel polo fieristico ai piedi delle colline del Prosecco: macchine, innovazione e prodotti agricoli.','12–14 dic 2026 (1366ª ed.)'],
 
 /* ---------------- VERONA ---------------- */
 ['vr-vinitaly','Vinitaly','Fiera di Verona','VR','G',{d:[4,12,4]},'Il salone internazionale dei vini e distillati.','aprile, date indicative'],
