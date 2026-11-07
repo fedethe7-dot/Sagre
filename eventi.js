@@ -234,3 +234,9 @@ const EVENTI = [
 ['bl-gnoche','Gnoche \'N Festa','Auronzo di Cadore','BL','S',{w:[10,1,1,0]},'Festa autunnale dei gnocchi con Mateon e La Desmonteada, nelle Dolomiti venete.','3–4 ott 2026'],
 ['bl-uva-fonzaso','Festa dell\'Uva','Fonzaso','BL','S',{w:[9,-1,2,0]},'Festa dell\'uva e dei vini bellunesi.','25–27 set 2026'],
 ];
+
+/* Serate fisse che si ripetono ogni settimana (sezione Night).
+   g = giorno della settimana (0 domenica, 1 lunedì … 6 sabato). Le date le calcola l'app. */
+const NIGHT_FISSE = [
+{id:'nf-berlino-karaoke',n:'Karaoke da Berlino',c:'Padova',p:'PD',g:1,url:'https://berlinopadova.it/',d:'Ogni lunedì sera'},
+];

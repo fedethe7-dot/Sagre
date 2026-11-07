@@ -19,9 +19,16 @@ https://2night.it/padova/eventi.html | PD | night
 https://www.creazionisrl.it/villa-peggys/ | | night | Villa Peggy's
 https://www.lamulata.it/eventi#sectionEvt | | night | La Mulata
 https://www.creazionisrl.it/la-casa-dei-gelsi/ | | night | La Casa dei Gelsi
+https://www.baessato.it/ | | night | Baessato
+https://berlinopadova.it/ | PD | night | Berlino
+https://specialmovida.com/movida-club/ | | night | Special Movida
+https://www.hierbasjesolo.it/ | VE | night | Hierbas Jesolo
+# Instagram chiede il login: lo scanner potrebbe non riuscire a leggerlo
+https://www.instagram.com/ilcervellonepadova_vi/ | | night | Il Cervellone
 
 # --- Sagre ed eventi ---
 https://www.parcocollieuganei.com/eventi.php#/eventi | PD
+https://www.propiazzola.it/eventi/ | PD
 https://www.asiago.it/it/eventi/ | VI
 https://jesolo.it/eventi/ | VE
 https://www.veneziatoday.it/eventi/ | VE

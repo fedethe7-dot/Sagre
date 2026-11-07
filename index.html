@@ -385,8 +385,23 @@ function geo(){
     ()=>toast('Posizione non disponibile: tocca la mappa per scegliere il centro'),{enableHighAccuracy:false,timeout:12000,maximumAge:300000});
 }
 
+/* serate che si ripetono ogni settimana (NIGHT_FISSE in eventi.js): le date le calcola l'app per i prossimi 60 giorni */
+function nightFisse(trovate){
+  const out=[];
+  for(const f of (typeof NIGHT_FISSE!=='undefined'?NIGHT_FISSE:[])){
+    const parola=f.n.toLowerCase().split(' ')[0];
+    for(let i=0;i<60;i++){
+      const d=add(TODAY,i);if(d.getDay()!==f.g)continue;
+      const s=iso(d);
+      if(trovate.some(p=>p.s===s&&p.n.toLowerCase().includes(parola)))continue;
+      out.push({id:f.id+'-'+s,n:f.n,c:f.c,p:f.p,s,e:s,url:f.url,d:f.d||'',t:'N'});
+    }
+  }
+  return out;
+}
 function vNight(){
-  const all=(PROP.eventi||[]).filter(p=>p.t==='N'&&p.e>=iso(TODAY)).filter(p=>!q||q.split(/\s+/).every(w=>(p.n+' '+p.c+' '+(p.d||'')).toLowerCase().includes(w))).sort((a,b)=>a.s.localeCompare(b.s)||a.n.localeCompare(b.n,'it'));
+  const trovate=(PROP.eventi||[]).filter(p=>p.t==='N'&&p.e>=iso(TODAY));
+  const all=trovate.concat(nightFisse(trovate)).filter(p=>!q||q.split(/\s+/).every(w=>(p.n+' '+p.c+' '+(p.d||'')).toLowerCase().includes(w))).sort((a,b)=>a.s.localeCompare(b.s)||a.n.localeCompare(b.n,'it'));
   const srcN=(PROP.fonti||[]).filter(f=>f.night).length;
   if(!all.length)return `<div class="empty">${srcN?'Nessuna serata in arrivo per ora. La lista si aggiorna da sola ogni lunedì.':'Aggiungi in fonti.txt un sito di locali con <b>| night</b> alla fine della riga.'}</div>`;
   let h=`<p class="note" style="margin:14px 0 0">${all.length} serate nei locali${PROP.aggiornato?' · aggiornato '+fdate(new Date(PROP.aggiornato)):''}</p>`,cur='';
@@ -467,12 +482,12 @@ function openProp(){
   const old=EV.filter(stale).map(ev=>{const o=nextOcc(ev);return o&&{ev,s:o.s,e:o.e}}).filter(Boolean).sort((a,b)=>a.s-b.s).slice(0,40);
   openSheet(`<h2>Eventi dai tuoi siti</h2>
   <p class="place">${PROP.aggiornato?'Ultimo controllo: '+fdate(new Date(PROP.aggiornato))+'. ':''}I siti vengono controllati da soli ogni lunedì mattina.</p>
+  ${p.length>1?`<div class="actions" style="margin:8px 0 12px"><button class="btn primary" data-act="propAddAll">Aggiungi tutti (${p.length})</button><button class="btn ghost" data-act="propIgnAll">Ignora tutti</button></div>`:''}
   ${p.length?p.map(x=>{const s=parseIso(x.s),e=parseIso(x.e);return `<div class="prop"><span class="evt">${esc(x.n)}</span>
     <span class="evs">${frange(s,e)}${x.c?' · '+esc(x.c):''}${x.p?' ('+esc(x.p)+')':''}</span>
     ${x.d?`<span class="evm">${esc(x.d.slice(0,160))}</span>`:''}
     <a class="src" href="${esc(x.url)}" target="_blank" rel="noopener">Vedi sul sito ↗</a>
     <span class="pbtn"><button class="btn primary" data-act="propAdd" data-id="${esc(x.id)}">Aggiungi</button><button class="btn" data-act="propIgn" data-id="${esc(x.id)}">Ignora</button></span></div>`}).join('')
-    +(p.length>1?`<button class="btn ghost" style="width:100%;margin-bottom:6px" data-act="propIgnAll">Ignora tutti</button>`:'')
    :`<div class="empty" style="margin-top:0">${f.length?'Nessun evento nuovo da controllare.':'Non hai ancora aggiunto siti da controllare.'}</div>`}
   <h3 class="sec">I tuoi siti <small>${f.length}</small></h3>
   ${f.map(x=>`<div class="src-row"><span>${esc(x.url.replace(/^https?:\/\/(www\.)?/,''))}</span><span>${x.ok?x.n+' trovati':'<span class="chk">'+esc(x.errore||'non letto')+'</span>'}</span></div>`).join('')}
@@ -517,6 +532,16 @@ document.addEventListener('click',e=>{
   case 'prop':openProp();break;
   case 'propIgn':st.ign.push(id);save();render();openProp();break;
   case 'propIgnAll':pending().forEach(x=>st.ign.push(x.id));save();render();openProp();toast('Ignorati');break;
+  case 'propAddAll':{
+    if(!b.dataset.ok){b.dataset.ok='1';b.textContent='Tocca di nuovo per aggiungere tutti';break}
+    const lista=pending();let n=0;
+    lista.forEach((x,i)=>{
+      st.mine.push({id:'mio-'+Date.now().toString(36)+i,n:x.n,c:x.c||'—',p:REGIONI.Veneto.includes(x.p)?x.p:'PD',
+        t:/auto|moto|motor|rally|raduno/i.test(x.n)?'A':/festa|palio|carneval|patrono/i.test(x.n)?'F':'S',
+        r:{f:[x.s,x.e]},d:x.d||'',u:'',url:x.url||'',ll:x.ll});
+      st.ign.push(x.id);n++;
+    });
+    save();closeSheet();render();toast(n+' eventi aggiunti');break}
   case 'propAdd':{const x=(PROP.eventi||[]).find(z=>z.id===id);if(!x)return;
     evForm({n:x.n,c:x.c,p:REGIONI.Veneto.includes(x.p)?x.p:'PD',t:/auto|moto|motor|rally|raduno/i.test(x.n)?'A':/festa|palio|carneval|patrono/i.test(x.n)?'F':'S',r:{f:[x.s,x.e]},d:x.d||'',url:x.url,ll:x.ll},x.id);break}
   case 'ics':{const ev=EV.find(z=>z.id===id);if(!ev)return;const s=parseIso(b.dataset.s);const o=occBetween(s,s,[ev]).find(z=>+z.s===+s)||nextOcc(ev);if(o)icsFile(ev,o);break}
