@@ -458,7 +458,7 @@ function vNight(){
    ===================================================================== */
 const PERIODI={oggi:'Oggi',weekend:'Weekend',sette:'7 giorni',trenta:'30 giorni'};
 const RAGGI=[10,25,50,100,0];
-let MAP=null,mapView=null,drawerLow=false;
+let MAP=null,mapView=null,drawerSt='';
 function periodRange(k){
   if(k==='oggi')return {s:TODAY,e:TODAY};
   if(k==='sette')return {s:TODAY,e:add(TODAY,6)};
@@ -474,18 +474,24 @@ function radarData(){
 }
 function vMappa(){
   const d=radarData(),per=st.periodo||'weekend';
-  return `<div class="view"><div class="mapwrap">
+  const dove=d.c.nome==='la tua posizione'?'vicino a te':d.c.nome==='punto scelto'||d.c.nome==='punto scelto sulla mappa'?'dal punto scelto':'da '+d.c.nome;
+  return `<div><div class="mapwrap" id="mapwrap">
     <div id="map" class="map" role="region" aria-label="Mappa degli eventi"></div>
-    <div class="mapctl">
-      <div class="chips">${Object.keys(PERIODI).map(k=>`<button class="chip glass" data-act="periodo" data-v="${k}" aria-pressed="${per===k}">${PERIODI[k]}</button>`).join('')}</div>
-      <div class="chips">${RAGGI.map(r=>`<button class="chip glass" data-act="raggio" data-v="${r}" aria-pressed="${d.R===r}">${r?r+' km':'Tutti'}</button>`).join('')}</div>
-    </div>
-    <button class="geo glass" data-act="geo" aria-label="Vicino a me">${ic('locate','width:24px;height:24px')}</button>
-    <div class="drawer glass${drawerLow?' low':''}" id="drawer">
+    <div class="mapctl"><button class="mpill glass" data-act="mapopt">${ic('filter')}${PERIODI[per]} · ${d.R?d.R+' km':'tutto il Veneto'}</button></div>
+    <button class="geo glass" data-act="geo" aria-label="Vicino a me">${ic('locate','width:22px;height:22px')}</button>
+    <div class="drawer glass ${drawerSt}" id="drawer">
       <div class="grab" data-act="drawer"></div>
-      <h3 data-act="drawer"><span>${d.vis.length} ${d.vis.length===1?'evento':'eventi'}${d.R?' entro '+d.R+' km':''}</span><small>da ${esc(d.c.nome)}</small></h3>
+      <div class="dh" data-act="drawer"><b>${d.vis.length} ${d.vis.length===1?'evento':'eventi'}</b><small>${PERIODI[per]} · ${d.R?'entro '+d.R+' km ':''}${esc(dove)}</small></div>
       <div class="list">${d.vis.length?d.vis.map(o=>card(o,Math.round(o.km))).join(''):`<div class="empty">Nessun evento qui nel periodo scelto. Allarga la distanza o il periodo.</div>`}</div>
     </div></div></div>`;
+}
+function openMapOpt(){
+  const per=st.periodo||'weekend',R=st.raggio===undefined?25:st.raggio;
+  openSheet(`<h2>Cosa mostrare</h2>
+  <div class="field"><label>Quando</label><div class="opt">${Object.keys(PERIODI).map(k=>`<button class="chip glass" data-act="periodo" data-v="${k}" aria-pressed="${per===k}">${PERIODI[k]}</button>`).join('')}</div></div>
+  <div class="field"><label>Distanza</label><div class="opt">${RAGGI.map(r=>`<button class="chip glass" data-act="raggio" data-v="${r}" aria-pressed="${R===r}">${r?r+' km':'Tutti'}</button>`).join('')}</div></div>
+  <p class="note" style="margin:0 2px 6px">Per cercare in un'altra zona tocca un punto sulla mappa: diventa il nuovo centro.</p>
+  <div class="stack"><button class="btn pri" data-act="close">Fatto</button></div>`);
 }
 function cssVar(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()||'#8B5CF6'}
 function initMap(){
@@ -495,6 +501,7 @@ function initMap(){
   const d=radarData();
   const zoom={10:11,25:10,50:9,100:8,0:8}[d.R];
   MAP=L.map(el,{zoomControl:false,attributionControl:true}).setView(mapView?mapView.c:d.c.ll,mapView?mapView.z:zoom);
+  if(!mapView){const h=el.clientHeight*0.21;MAP.panBy([0,Math.round(h)],{animate:false})}
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'&copy; OpenStreetMap'}).addTo(MAP);
   if(d.R)L.circle(d.c.ll,{radius:d.R*1000,color:cssVar('--acc'),weight:1.5,fillOpacity:.07,dashArray:'6 6'}).addTo(MAP);
   L.marker(d.c.ll,{icon:L.divIcon({className:'',html:'<div class="me-pin"></div>',iconSize:[16,16],iconAnchor:[8,8]})}).addTo(MAP).bindTooltip(d.c.nome);
@@ -505,7 +512,15 @@ function initMap(){
   });
   MAP.on('popupopen',e=>{e.popup.getElement().querySelectorAll('[data-open]').forEach(b=>b.addEventListener('click',()=>{MAP.closePopup();openItem(b.dataset.k,b.dataset.open,b.dataset.s)}))});
   MAP.on('moveend',()=>{mapView={c:MAP.getCenter(),z:MAP.getZoom()}});
-  MAP.on('click',e=>{st.centro={ll:[+e.latlng.lat.toFixed(4),+e.latlng.lng.toFixed(4)],nome:'punto scelto'};mapView=null;save();render()});
+  MAP.on('click',e=>{st.centro={ll:[+e.latlng.lat.toFixed(4),+e.latlng.lng.toFixed(4)],nome:'punto scelto'};mapView={c:e.latlng,z:MAP.getZoom()};save();render()});
+}
+function dragDrawer(){
+  const dr=$('#drawer');if(!dr)return;let y0=null;
+  const start=e=>{const t=e.target;if(t.closest('.list')&&dr.querySelector('.list').scrollTop>0)return;y0=e.touches[0].clientY};
+  const end=e=>{if(y0==null)return;const dy=e.changedTouches[0].clientY-y0;y0=null;
+    if(Math.abs(dy)<40)return;
+    const ord=['low','','big'];let i=ord.indexOf(drawerSt);i=Math.max(0,Math.min(2,i+(dy<0?1:-1)));drawerSt=ord[i];dr.className='drawer glass '+drawerSt};
+  dr.addEventListener('touchstart',start,{passive:true});dr.addEventListener('touchend',end,{passive:true});
 }
 async function geo(){
   toast('Cerco la tua posizione…');
@@ -683,7 +698,7 @@ function render(){
   const app=$('#app');
   const qIn=document.activeElement&&document.activeElement.id==='q';
   app.innerHTML=html;
-  if(V.view==='mappa')initMap();
+  if(V.view==='mappa'){const w=$('#mapwrap');if(w)w.style.top=Math.round(document.querySelector('.top').getBoundingClientRect().height)+'px';initMap();dragDrawer()}
   if(qIn){const i=$('#q');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}}
   bindAsk();
 }
@@ -734,9 +749,10 @@ document.addEventListener('click',e=>{
   case 'tipo':st.tipi=st.tipi.includes(v)?st.tipi.filter(x=>x!==v):st.tipi.concat(v);save();render();openFilters();break;
   case 'open':openItem(b.dataset.k||'ev',id,b.dataset.s);break;
   case 'geo':geo();break;
-  case 'drawer':drawerLow=!drawerLow;$('#drawer').classList.toggle('low',drawerLow);break;
-  case 'raggio':st.raggio=+v;mapView=null;save();render();break;
-  case 'periodo':st.periodo=v;save();render();break;
+  case 'drawer':drawerSt=drawerSt===''?'big':drawerSt==='big'?'low':'';$('#drawer').className='drawer glass '+drawerSt;break;
+  case 'mapopt':openMapOpt();break;
+  case 'raggio':st.raggio=+v;mapView=null;save();render();if(!$('#sheetWrap').hidden)openMapOpt();break;
+  case 'periodo':st.periodo=v;save();render();if(!$('#sheetWrap').hidden)openMapOpt();break;
   case 'close':closeSheet();break;
   case 'fav':{const on=st.fav.includes(id);st.fav=on?st.fav.filter(x=>x!==id):st.fav.concat(id);save();render();openEvent(id);toast(on?'Tolto dai preferiti':'Salvato nei preferiti');break}
   case 'add':evForm(null);break;

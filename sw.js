@@ -1,5 +1,5 @@
 // Che si fa? (v2) - service worker. Cambia il numero (v1 -> v2) quando aggiorni i file.
-const CACHE = 'chesifa-v2-2';
+const CACHE = 'chesifa-v2-3';
 const FILES = ['./', 'index.html', 'style.css', 'app.js', 'eventi.js', 'luoghi.js', 'proposte.js', 'manifest.json', 'icon.svg'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(k => Promise.all(k.filter(x => x !== CACHE).map(x => caches.delete(x)))).then(() => self.clients.claim())); });
