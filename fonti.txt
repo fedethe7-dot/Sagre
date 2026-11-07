@@ -34,3 +34,4 @@ https://jesolo.it/eventi/ | VE
 https://www.veneziatoday.it/eventi/ | VE
 https://www.vicenzatoday.it/eventi/ | VI
 https://www.visitdolomitibellunesi.com/it/eventi/calendario-eventi | BL
+# ultimo aggiornamento scanner: 2026-11-07

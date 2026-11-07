@@ -247,8 +247,9 @@ function daPagina(html, url, ev) {
   if (gratis) out.pr = 'Ingresso libero'; else if (prezzo) out.pr = prezzo[1].replace(/euro/i, '€').replace(/\s+/g, ' ');
   const v = (j && j.dove) || (tutto.match(/(?:presso|location|luogo|dove)\s*:\s*([^.;|]{3,60})/i) || [])[1];
   if (v) out.v = v.trim().slice(0, 70);
-  const luogo = v ? trovaLuogo(v, ev.p) : trovaLuogo(tutto.slice(0, 1500), ev.p);
-  if (!luogo.c && v) { const ul = v.split(',').map(x => x.trim()).filter(x => x.length > 2 && !/\d/.test(x)).pop(); if (ul && ul.length < 30) luogo.c = ul; }
+  const vv = v || ev.v;
+  const luogo = vv ? trovaLuogo(vv, ev.p) : trovaLuogo(tutto.slice(0, 1500), ev.p);
+  if (!luogo.c && vv) { const ul = vv.split(',').map(x => x.trim()).filter(x => x.length > 2 && !/\d/.test(x)).pop(); if (ul && ul.length < 30) luogo.c = ul; }
   if (luogo.c && (!ev.c || ev.c === '')) { out.c = luogo.c; if (luogo.p) out.p = luogo.p; if (luogo.ll) out.ll = luogo.ll; }
   return out;
 }
@@ -287,7 +288,7 @@ function analizza(html, base, provDefault, night) {
   for (const x of grezzi) {
     if (x.e < OGGI || x.s > fine) continue;
     if ((x.e - x.s) / 864e5 > 60) continue;              // periodi troppo lunghi: probabilmente non sono un evento
-    if (/^(lun|mar|mer|gio|ven|sab|dom)[a-zì]*\.?$/i.test(x.n.trim()) && x.d) { const r = pulisciDesc(x.d, ''); if (r) x.n = r.split(/[.;]/)[0].replace(/^(l'|la |il |lo |le |i |gli )/i, m => m).slice(0, 90); } // titolo = solo il giorno: lo prendo dalla descrizione
+    if (/^(lun|mar|mer|gio|ven|sab|dom)[a-zì]*\.?$/i.test(x.n.trim()) && x.d) { const r = pulisciDesc(String(x.d).replace(/^\s*(?:lun|mar|mer|gio|ven|sab|dom)[a-zì]*\.?\s+\d{1,2}\s+[a-z]+(?:\s+\d{4})?\s*[,:–-]?\s*/i, ''), '', false); if (r) { const t = r.split(/[.;]/)[0].slice(0, 90); x.n = t.charAt(0).toUpperCase() + t.slice(1); } } // titolo = solo il giorno: lo prendo dalla descrizione
     if (generico(x.n) && (!x.url || x.url.split('#')[0] === base.split('#')[0] || LINK_ELENCO.test(x.url))) continue; // titoli di pagina o di sezione ("Eventi popolari a Padova…")
     if (!x.strutturato && x.url && LINK_ELENCO.test(x.url)) continue; // link a categorie o luoghi, non a un evento
     if (!night && !x.strutturato && !PAROLE_EVENTO.test(x.n + ' ' + x.d)) continue;
