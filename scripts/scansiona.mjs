@@ -1,4 +1,4 @@
-// Lunario delle Sagre - scanner dei siti di eventi.
+// Che si fa? - scanner dei siti di eventi.
 // Legge i link da fonti.txt, scarica ogni pagina, cerca eventi con le date
 // e scrive proposte.js: l'app li mostra in "Eventi trovati sui tuoi siti" da controllare.
 // Uso: node scripts/scansiona.mjs            (scarica i siti)

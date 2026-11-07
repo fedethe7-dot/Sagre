@@ -1,13 +1,13 @@
 {
-  "name": "Lunario delle Sagre",
-  "short_name": "Sagre",
+  "name": "Che si fa?",
+  "short_name": "Che si fa?",
   "description": "Sagre, feste, fiere e grandi eventi del Veneto con le date previste",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#F3F5F1",
-  "theme_color": "#C2410C",
+  "background_color": "#07080D",
+  "theme_color": "#07080D",
   "lang": "it",
   "icons": [
     { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },

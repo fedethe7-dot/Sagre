@@ -1,4 +1,4 @@
-/* Lunario delle Sagre - elenco eventi ricorrenti
+/* Che si fa? - elenco eventi ricorrenti
    Ogni riga: [id, nome, comune, provincia, tipo, regola, descrizione, ultima edizione nota]
    tipo: S = sagra, F = festa / ricorrenza, M = fiera / mercato, G = grande evento, A = auto e moto
    regola:
