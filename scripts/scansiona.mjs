@@ -202,12 +202,12 @@ const GENERICO = /^(prenota( ora)?|acquista|biglietti|scopri( di più)?|info|con
 const LINK_ELENCO = /\/(location|luogo|luoghi|tipo|tipi|categoria|categorie|category|categories|tag|tags|autore|author|page|pagina|search|cerca)\//i;
 const generico = n => GENERICO.test(String(n || '').trim().replace(/[:.!]+$/, ''));
 // toglie dalla descrizione titolo, date, "Vedi", "Leggi tutto"...
-function pulisciDesc(d, n) {
+function pulisciDesc(d, n, togliDate = true) {
   let t = ' ' + decode(String(d || '').replace(/<[^>]+>/g, ' ')) + ' ';
   if (n) t = t.split(n).join(' ');
-  for (const x of trovaDate(t).reverse()) t = t.slice(0, x.pos) + ' ' + t.slice(x.pos + x.len);
+  if (togliDate) for (const x of trovaDate(t).reverse()) t = t.slice(0, x.pos) + ' ' + t.slice(x.pos + x.len);
   t = t.replace(/\b(vedi|leggi tutto|leggi di più|scopri di più|continua a leggere|dettagli|più info|info)\s*(›|»|→|>)?\s*$/i, '')
-       .replace(/\b(lunedì|martedì|mercoledì|giovedì|venerdì|sabato|domenica)\b/gi, ' ')
+       .replace(togliDate ? /\b(lunedì|martedì|mercoledì|giovedì|venerdì|sabato|domenica)\b/gi : /^\b$/, ' ')
        .replace(/\s+/g, ' ').replace(/^[\s\-–:,|·.]+|[\s\-–:,|·]+$/g, '').trim();
   return t.length >= 12 ? t : '';
 }
@@ -237,16 +237,18 @@ function daPagina(html, url, ev) {
   const paragrafi = [...corpo.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi)].map(m => testo(m[1])).filter(p => p.length > 50 && !/cookie|privacy|newsletter|iscriviti|copyright|©/i.test(p));
   const desc = (j && j.d) || meta(html, 'og:description') || meta(html, 'description') || paragrafi[0] || '';
   const lunga = paragrafi.slice(0, 3).join(' ');
-  const d = pulisciDesc(desc.length >= 60 ? desc : (lunga || desc), out.n || ev.n);
+  const d = pulisciDesc(desc.length >= 60 ? desc : (lunga || desc), '', false);
   if (d) out.d = d.slice(0, 320);
   const tutto = testo(corpo).slice(0, 20000);
   const ora = tutto.match(/\b(?:ore|alle|dalle|dalle ore|inizio|apertura porte|h\.?)\s*(\d{1,2})[:.](\d{2})/i) || tutto.match(/\b(?:ore|alle|dalle)\s+(\d{1,2})\b(?![:.\/\d])/i);
   if (ora && +ora[1] < 24) out.h = pad(+ora[1]) + ':' + (ora[2] || '00');
-  const prezzo = tutto.match(/ingresso (?:libero|gratuito)|gratuit[oa]|\bgratis\b|(?:€|euro)\s?\d{1,3}(?:[,.]\d{2})?|\d{1,3}(?:[,.]\d{2})?\s?(?:€|euro)\b/i);
-  if (prezzo) out.pr = /libero|gratu|gratis/i.test(prezzo[0]) ? 'Gratis' : prezzo[0].replace(/euro/i, '€').replace(/\s+/g, ' ');
+  const gratis = /(ingresso|entrata|partecipazione)\s*(:\s*)?(libero|gratuit[oa]|gratis)|evento gratuito|ad ingresso libero/i.test(tutto);
+  const prezzo = tutto.match(/(?:ingresso|biglietto|biglietti|prezzo|costo|intero|quota)[^.€\d]{0,25}((?:€|euro)\s?\d{1,3}(?:[,.]\d{2})?|\d{1,3}(?:[,.]\d{2})?\s?(?:€|euro)\b)/i);
+  if (gratis) out.pr = 'Ingresso libero'; else if (prezzo) out.pr = prezzo[1].replace(/euro/i, '€').replace(/\s+/g, ' ');
   const v = (j && j.dove) || (tutto.match(/(?:presso|location|luogo|dove)\s*:\s*([^.;|]{3,60})/i) || [])[1];
   if (v) out.v = v.trim().slice(0, 70);
-  const luogo = trovaLuogo((v || '') + ' ' + tutto.slice(0, 3000), ev.p);
+  const luogo = v ? trovaLuogo(v, ev.p) : trovaLuogo(tutto.slice(0, 1500), ev.p);
+  if (!luogo.c && v) { const ul = v.split(',').map(x => x.trim()).filter(x => x.length > 2 && !/\d/.test(x)).pop(); if (ul && ul.length < 30) luogo.c = ul; }
   if (luogo.c && (!ev.c || ev.c === '')) { out.c = luogo.c; if (luogo.p) out.p = luogo.p; if (luogo.ll) out.ll = luogo.ll; }
   return out;
 }
@@ -268,6 +270,10 @@ async function arricchisci(lista, fonte, nome) {
     }
   };
   await Promise.all([lavora(), lavora(), lavora(), lavora()]);
+  // "07.11 LA STORIA DELLA MUSICA" / "SABATO 14 NOVEMBRE - MY FRIENDS" -> solo il nome
+  const MR = '(?:gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)';
+  const reData = new RegExp('^\\s*(?:(?:lun|mar|mer|gio|ven|sab|dom)[a-zì]*\\.?\\s*)?(?:\\d{1,2}[./]\\d{1,2}(?:[./]\\d{2,4})?|\\d{1,2}\\s+' + MR + '(?:\\s+\\d{4})?)\\s*[-–:,.]?\\s+', 'i');
+  for (const e of lista) { const r = e.n.replace(reData, ''); if (r !== e.n && r.length >= 6) { e.n = r.charAt(0).toUpperCase() + (r === r.toUpperCase() ? r.slice(1).toLowerCase() : r.slice(1)); } else if (e.n === e.n.toUpperCase() && e.n.length > 8) e.n = e.n.charAt(0) + e.n.slice(1).toLowerCase(); }
   const stessa = e => !e.url || e.url.split('#')[0].replace(/\/$/, '') === fonte.split('#')[0].replace(/\/$/, '');
   return lista.filter(e => !generico(e.n) && !(nome && stessa(e) && norm(e.n).includes(norm(nome))));
 }
@@ -398,9 +404,11 @@ async function main() {
           if (process.env.DEBUG_DIR && ev2.length < 3) { mkdirSync(process.env.DEBUG_DIR, { recursive: true }); writeFileSync(join(process.env.DEBUG_DIR, f.url.replace(/[^a-z0-9]+/gi, '_').slice(0, 80) + '.html'), h2); }
         }
       }
+      if (html && /robot challenge|captcha|are you a robot|access denied|attention required/i.test(html.slice(0, 5000)) && !ev.length) errore = new Error('il sito ha bloccato il controllo automatico');
+      if (!ev.length && !errore && (prima.eventi || []).some(x => x.fonte === f.url && x.e >= oggiIso)) errore = new Error('oggi non ha dato eventi: tengo quelli di prima');
       if (errore && !ev.length) throw errore;
       ev = await arricchisci(ev, f.url, f.nome);
-      if (f.nome) ev.forEach(e => { if (!e.c) e.c = f.nome; });
+      if (f.nome) ev.forEach(e => { if (!e.v) e.v = f.nome; if (!e.c) e.c = f.nome; });
       stato.push({ url: f.url, ok: 1, n: ev.length, night: f.night ? 1 : undefined });
       for (const e of ev) if (!eventi.some(x => x.id === e.id)) eventi.push(e);
       console.log(`✓ ${f.url}: ${ev.length} eventi (${ev.filter(e => e.x).length} letti nella loro pagina)`);
