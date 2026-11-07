@@ -51,7 +51,7 @@ function trovaDate(t) {
   const out = [];
   const presi = [];
   const libero = (a, b) => !presi.some(([x, y]) => a < y && b > x);
-  const prendi = (m, s, e) => { if (s && e && e >= s && libero(m.index, m.index + m[0].length)) { presi.push([m.index, m.index + m[0].length]); out.push({ s, e, pos: m.index }); } };
+  const prendi = (m, s, e) => { if (s && e && e >= s && libero(m.index, m.index + m[0].length)) { presi.push([m.index, m.index + m[0].length]); out.push({ s, e, pos: m.index, len: m[0].length }); } };
   let re, m;
   // dal 30 settembre al 5 ottobre 2026 / 30 set - 5 ott 2026
   re = new RegExp(`(\\d{1,2})\\s+${MESE_RE}(?:\\s+(\\d{4}))?\\s*(?:-|–|—|al|all'|fino al)\\s*(\\d{1,2})\\s+${MESE_RE}(?:\\s+(\\d{4}))?`, 'gi');
@@ -68,6 +68,9 @@ function trovaDate(t) {
   // 17/10/2026
   re = /\b(\d{1,2})[\/.](\d{1,2})[\/.](20\d{2})\b/g;
   while ((m = re.exec(t))) { const d = data(+m[1], +m[2], +m[3]); prendi(m, d, d); }
+  // GIO 31/12 (giorno della settimana + giorno/mese senza anno: usato da alcuni locali)
+  re = /\b(?:lun|mar|mer|gio|ven|sab|dom)[a-zì]*\.?\s+(\d{1,2})\/(\d{1,2})\b(?!\/)/gi;
+  while ((m = re.exec(t))) { const d = data(+m[1], +m[2]); prendi(m, d, d); }
   return out.sort((a, b) => a.pos - b.pos);
 }
 
@@ -144,7 +147,8 @@ function daTesto(html, base) {
     const isTitolo = /^<h[1-6]/i.test(h) || (t.length < 110 && /^<(?:div|li|p)[^>]*class="[^"]*(title|titolo|nome|heading)/i.test(h));
     const link = (h.match(/<a\b[^>]*href="([^"#][^"]*)"/i) || [])[1];
     const date = trovaDate(t);
-    const soloData = date.length && t.replace(/\b(lun|mar|mer|gio|ven|sab|dom)[a-zì]*\b/gi, '').replace(/[\d\s\/.,:–-]+/g, ' ').trim().split(' ').length <= 3 && t.length < 40;
+    const dataConTitolo = /^(?:lun|mar|mer|gio|ven|sab|dom)[a-zì]*\.?\s+\d{1,2}\/\d{1,2}\s+[a-zà-ù]/i.test(t); // "GIO 31/12 TITOLO": data e titolo insieme
+    const soloData = date.length && !dataConTitolo && t.replace(/\b(lun|mar|mer|gio|ven|sab|dom)[a-zì]*\b/gi, '').replace(/[\d\s\/.,:–-]+/g, ' ').trim().split(' ').length <= 3 && t.length < 40;
     if (attesa && !date.length) {
       const pulito = t.replace(/^\d{1,2}[.\/]\d{1,2}\s+/, '');
       if ((isTitolo || (link && t.length < 140)) && pulito.length >= 5) {
@@ -165,6 +169,7 @@ function daTesto(html, base) {
     if (!n && isTitolo) n = t.replace(/\d{1,2}[^a-z]*$/i, '');
     if (!n && distanza <= 3) n = titolo;
     if (!n) n = t.slice(0, d.pos).replace(/[\s\-–:,|·]+$/, '');
+    if ((!n || n.length < 5) && d.len) n = t.slice(d.pos + d.len).replace(/^[\s\-–:,|·]+/, ''); // "GIO 31/12 TITOLO": il titolo segue la data
     if (!n || n.length < 5) continue;
     n = n.replace(/\s+/g, ' ').slice(0, 120);
     out.push({ n, s: d.s, e: d.e, dove: t, url: link ? assoluto(link, base) : (distanza <= 3 && titoloLink) || base, d: t.length > n.length + 5 ? t.slice(0, 220) : '' });
