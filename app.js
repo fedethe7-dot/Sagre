@@ -113,9 +113,12 @@ function allEvents(){
   return base.concat(st.mine.map(m=>Object.assign({mine:1},m,{t:m.t==='M'?'S':m.t})));
 }
 let EV=allEvents();
+/* titoli di pagina o link a categorie trovati per errore dallo scanner: non sono eventi */
+const JUNK=/^(prenota( ora)?|acquista|biglietti|eventi|concerti|mostre|spettacoli|teatro|sagre|feste|serate|programma|calendario|agenda|home|location)$|eventi popolari|per il giorno|cosa fare|gli eventi nei|eventi nei locali|tutti gli eventi/i;
+const junk=p=>JUNK.test(String(p.n||'').trim())||/\/(location|luogo|tipo|categoria|category|tag)\//i.test(p.url||'');
 function pending(){
   const mine=new Set(st.mine.map(m=>(m.n||'').toLowerCase()+'|'+((m.r&&(m.r.f||m.r.f2)||[])[0]||'')));
-  return (PROP.eventi||[]).filter(p=>p.t!=='N'&&!st.ign.includes(p.id)&&p.e>=iso(TODAY)&&!mine.has(p.n.toLowerCase()+'|'+p.s));
+  return (PROP.eventi||[]).filter(p=>p.t!=='N'&&!junk(p)&&!st.ign.includes(p.id)&&p.e>=iso(TODAY)&&!mine.has(p.n.toLowerCase()+'|'+p.s));
 }
 function passes(ev){
   if(st.prov!=='tutte'&&ev.p!==st.prov)return false;
@@ -147,12 +150,14 @@ function nightFisse(trovate){
 }
 /* tutte le cose da fare in un unico formato: ev (ricorrenze), web (trovati sui siti), night (serate) */
 const itEv=o=>({k:'ev',id:o.ev.id,n:o.ev.n,c:o.ev.c,p:o.ev.p,t:o.ev.t,s:o.s,e:o.e,d:o.ev.d||'',ev:o.ev,ll:placeOf(o.ev)});
-const itRaw=(p,k)=>({k,id:p.id,n:p.n,c:p.c||'',p:p.p||'',t:k==='night'?'N':'W',s:parseIso(p.s),e:parseIso(p.e),d:p.d||'',url:p.url,ll:p.ll||LUOGHI[(p.c||'')+'|'+(p.p||'')]||null,raw:p});
+const itRaw=(p,k)=>({k,id:p.id,n:p.n,c:p.c||'',p:p.p||'',t:k==='night'?'N':'W',s:parseIso(p.s),e:parseIso(p.e),d:p.d||'',url:p.url,h:p.h||'',v:p.v||'',pr:p.pr||'',ll:p.ll||LUOGHI[(p.c||'')+'|'+(p.p||'')]||null,raw:p});
 function nightItems(){
-  const trovate=(PROP.eventi||[]).filter(p=>p.t==='N'&&p.e>=iso(TODAY));
+  const trovate=(PROP.eventi||[]).filter(p=>p.t==='N'&&!junk(p)&&p.e>=iso(TODAY));
   return trovate.concat(nightFisse(trovate)).map(p=>itRaw(p,'night'));
 }
 const webItems=()=>pending().map(p=>itRaw(p,'web'));
+const guessT=x=>{const t=norm(x.n+' '+(x.d||''));return /auto|moto|motor|rally|raduno/.test(t)?'A':/concert|mostra|museo|teatro|spettacol|festival|cinema|commedia|musical/.test(t)?'G':/sagra|fiera|mercat|degust|gastronom|vino|castagn|polenta|baccala/.test(t)?'S':/festa|palio|carneval|patrono|tradizion/.test(t)?'F':'G'};
+const extraD=x=>[x.d,x.v&&'Dove: '+x.v,x.h&&'Ore '+x.h,x.pr&&'Ingresso: '+x.pr].filter(Boolean).join(' · ');
 const inRange=(it,a,b)=>it.e>=a&&it.s<=b;
 function itemsBetween(a,b,kinds,evList){
   let out=[];
@@ -178,13 +183,15 @@ function card(it,dist){
   const days=Math.round((it.e-it.s)/DAY)+1;
   let tags=`<span class="tag t">${TIPI[it.t]}</span>`;
   if(dist!=null)tags=`<span class="tag">${dist} km</span>`+tags;
+  if(it.h)tags=`<span class="tag">ore ${esc(it.h)}</span>`+tags;
+  if(it.pr)tags+=`<span class="tag">${esc(it.pr)}</span>`;
   if(it.p)tags+=`<span class="tag">${esc(it.p)}</span>`;
   if(days>1&&!ongoing)tags+=`<span class="tag">${days} giorni</span>`;
   if(it.k==='ev'&&!exact(it.ev))tags+=stale(it.ev)?'<span class="tag warn">da verificare</span>':'<span class="tag">date previste</span>';
   return `<button class="card glass" data-act="open" data-k="${it.k}" data-id="${esc(it.id)}" data-s="${iso(it.s)}" style="--tc:var(--t-${it.t})">
     <span class="date">${dd}</span>
     <span class="cb"><span class="n">${fav?'<span class="star">★</span> ':''}${esc(it.n)}</span>
-    ${it.c?`<span class="w">${esc(it.c)}</span>`:''}
+    ${it.c&&it.c!=='—'||it.v?`<span class="w">${esc([it.v,it.c!=='—'?it.c:''].filter(Boolean).filter((x,i,A)=>A.indexOf(x)===i).join(' · '))}</span>`:''}
     <span class="tags">${tags}</span></span></button>`;
 }
 
@@ -547,8 +554,8 @@ const gb=(icon,label,attrs,on)=>`<${attrs.startsWith('href')?'a':'button'} class
 function openItem(k,id,s){
   if(k==='ev')return openEvent(id,s);
   const it=(k==='night'?nightItems():webItems()).find(x=>x.id===id);if(!it)return;
-  openSheet(`<h2>${esc(it.n)}</h2><p class="place">${esc(it.c||'')}${it.p?' · '+esc(PROVINCE[it.p]||it.p):''}</p>
-  <div class="evhero" style="--tc:var(--t-${it.t})"><div class="k">${k==='night'?'Serata nei locali':'Trovato sui tuoi siti'}</div><div class="d">${frange(it.s,it.e)}</div>
+  openSheet(`<h2>${esc(it.n)}</h2><p class="place">${esc([it.v,it.c,it.p&&(PROVINCE[it.p]||it.p)].filter(Boolean).filter((x,i,A)=>A.indexOf(x)===i).join(' · '))}</p>
+  <div class="evhero" style="--tc:var(--t-${it.t})"><div class="k">${k==='night'?'Serata nei locali':'Trovato sui tuoi siti'}</div><div class="d">${frange(it.s,it.e)}${it.h?' · ore '+esc(it.h):''}</div>${it.pr?`<div class="s"><b>Ingresso:</b> ${esc(it.pr)}</div>`:''}
   <div class="s">${k==='night'?'Preso in automatico dal sito del locale: controlla orari e prezzi.':'Trovato dallo scanner: controlla sul sito prima di andare.'}</div></div>
   ${it.d?`<p class="desc">${esc(String(it.d).replace(/<[^>]+>/g,'').slice(0,300))}</p>`:''}
   <div class="grid">
@@ -565,7 +572,7 @@ function openEvent(id,sIso){
   if(sIso){const s=parseIso(sIso);o=occBetween(s,s,[ev]).find(x=>+x.s===+s)||null}
   if(!o)o=nextOcc(ev);
   const fav=st.fav.includes(ev.id);
-  openSheet(`<h2>${esc(ev.n)}</h2><p class="place">${esc(ev.c)} · ${esc(PROVINCE[ev.p]||ev.p)}</p>
+  openSheet(`<h2>${esc(ev.n)}</h2><p class="place">${esc([ev.c!=='—'?ev.c:'',PROVINCE[ev.p]||ev.p].filter(Boolean).join(' · '))}</p>
   <div class="evhero" style="--tc:var(--t-${ev.t})"><div class="k">${TIPI[ev.t]} · ${o&&o.e<TODAY?'edizione passata':exact(ev)?'prossima data':'prossima edizione prevista'}</div>
     <div class="d">${o?frange(o.s,o.e):'—'}</div>
     <div class="s">Di solito: ${esc(descr(ev))}</div>
@@ -609,6 +616,7 @@ function openProp(){
   ${p.length>1?`<div class="row2" style="margin-bottom:12px"><button class="btn pri" data-act="propAddAll">Aggiungi tutti (${p.length})</button><button class="btn glass" data-act="propIgnAll">Ignora tutti</button></div>`:''}
   ${p.length?p.map(x=>{const s=parseIso(x.s),e=parseIso(x.e);return `<div class="prop glass"><b>${esc(x.n)}</b>
     <span style="font-size:.88rem;color:var(--ink2)">${frange(s,e)}${x.c?' · '+esc(x.c):''}${x.p?' ('+esc(x.p)+')':''}</span>
+    ${x.h||x.v||x.pr?`<span style="font-size:.8rem;color:var(--ink2)">${esc([x.h&&'ore '+x.h,x.v,x.pr].filter(Boolean).join(' · '))}</span>`:''}
     ${x.d?`<span style="font-size:.8rem;color:var(--mut)">${esc(String(x.d).replace(/<[^>]+>/g,'').slice(0,160))}</span>`:''}
     <a class="src" href="${esc(x.url)}" target="_blank" rel="noopener">Vedi sul sito ↗</a>
     <span class="pb"><button class="btn pri" data-act="propAdd" data-id="${esc(x.id)}">Aggiungi</button><button class="btn glass" data-act="propIgn" data-id="${esc(x.id)}">Ignora</button></span></div>`}).join('')
@@ -743,14 +751,13 @@ document.addEventListener('click',e=>{
     if(!b.dataset.ok){b.dataset.ok='1';b.textContent='Tocca di nuovo per aggiungere tutti';break}
     let n=0;
     pending().forEach((x,i)=>{
-      st.mine.push({id:'mio-'+Date.now().toString(36)+i,n:x.n,c:x.c||'—',p:REGIONI.Veneto.includes(x.p)?x.p:'PD',
-        t:/auto|moto|motor|rally|raduno/i.test(x.n)?'A':/festa|palio|carneval|patrono/i.test(x.n)?'F':'S',
-        r:{f:[x.s,x.e]},d:x.d||'',u:'',url:x.url||'',ll:x.ll});
+      st.mine.push({id:'mio-'+Date.now().toString(36)+i,n:x.n,c:x.c||x.v||'—',p:REGIONI.Veneto.includes(x.p)?x.p:'PD',
+        t:guessT(x),r:{f:[x.s,x.e]},d:extraD(x),u:'',url:x.url||'',ll:x.ll});
       st.ign.push(x.id);n++;
     });
     save();closeSheet();render();toast(n+' eventi aggiunti');break}
   case 'propAdd':{const x=(PROP.eventi||[]).find(z=>z.id===id);if(!x)return;
-    evForm({n:x.n,c:x.c,p:REGIONI.Veneto.includes(x.p)?x.p:'PD',t:/auto|moto|motor|rally|raduno/i.test(x.n)?'A':/festa|palio|carneval|patrono/i.test(x.n)?'F':'S',r:{f:[x.s,x.e]},d:x.d||'',url:x.url,ll:x.ll},x.id);break}
+    evForm({n:x.n,c:x.c||x.v||'',p:REGIONI.Veneto.includes(x.p)?x.p:'PD',t:guessT(x),r:{f:[x.s,x.e]},d:extraD(x),url:x.url,ll:x.ll},x.id);break}
   case 'ics':{const ev=EV.find(z=>z.id===id);if(!ev)return;const s=parseIso(b.dataset.s);const o=occBetween(s,s,[ev]).find(z=>+z.s===+s)||nextOcc(ev);if(o)icsFile(ev,o);break}
   case 'edit':evForm(st.mine.find(x=>x.id===id));break;
   case 'del':{if(b.dataset.ok){st.mine=st.mine.filter(x=>x.id!==id);st.fav=st.fav.filter(x=>x!==id);save();closeSheet();render();toast('Evento eliminato')}else{b.dataset.ok='1';b.lastChild.textContent='Tocca ancora'}break}
