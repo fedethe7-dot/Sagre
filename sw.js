@@ -1,6 +1,6 @@
-// Lunario delle Sagre - service worker. Cambia il numero (v1 -> v2) quando aggiorni i file.
-const CACHE = 'lunario-v13';
-const FILES = ['./', 'index.html', 'eventi.js', 'luoghi.js', 'proposte.js', 'manifest.json', 'icon.svg'];
+// Citylife - service worker. Cambia il numero (v1 -> v2) quando aggiorni i file.
+const CACHE = 'citylife-v1';
+const FILES = ['./', 'index.html', 'carica.js', 'app.js', 'eventi.js', 'luoghi.js', 'proposte.js', 'manifest.json', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(k => Promise.all(k.filter(x => x !== CACHE).map(x => caches.delete(x)))).then(() => self.clients.claim())); });
 self.addEventListener('fetch', e => {

@@ -1,9 +1,10 @@
-# Lunario delle Sagre
+# Citylife
 
-Sagre, feste, fiere ed eventi del Veneto con le date previste. App: https://fedethe7-dot.github.io/Sagre/
+Sagre e ricorrenze, Cult (teatro, gospel, classica), Concerti, Night e Aperitivo in Veneto. App: https://fedethe7-dot.github.io/Sagre/
 
 - `eventi.js` – elenco degli eventi ricorrenti
 - `luoghi.js` – coordinate dei paesi per il Radar
 - `fonti.txt` – siti da controllare ogni settimana (un link per riga)
-- `proposte.js` – eventi trovati sui siti (lo scrive lo scanner, non a mano)
+- `proposte.js` – eventi trovati sui siti (lo scrive lo scanner, non a mano): Night, Cult e Concerti compaiono da soli
+- `app.js` – l'app; `carica.js` – carica i dati (nell'app Android li prende aggiornati da internet)
 - `scripts/scansiona.mjs` + `.github/workflows/scansiona.yml` – scanner automatico, ogni lunedì
