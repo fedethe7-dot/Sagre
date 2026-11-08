@@ -27,6 +27,18 @@ for (const k of Object.keys(LUOGHI)) {
   for (const parte of luogo.split(',')) { const n = norm(parte); if (n.length > 3) COMUNI.push({ n, nome: parte.trim(), p, chiave: luogo }); }
 }
 for (const [p, nome] of Object.entries(PROVINCE)) if (!COMUNI.some(c => c.n === norm(nome))) COMUNI.push({ n: norm(nome), nome, p, chiave: '' });
+// luoghi di concerti e spettacoli: il nome del posto basta a capire la città
+const LOCALI_NOTI = [
+  ['arena di verona', 'Verona', 'VR'], ['teatro romano verona', 'Verona', 'VR'], ['teatro filarmonico', 'Verona', 'VR'],
+  ['kioene arena', 'Padova', 'PD'], ['palazzo san lazzaro', 'Padova', 'PD'], ['gran teatro geox', 'Padova', 'PD'], ['geox', 'Padova', 'PD'],
+  ['stadio euganeo', 'Padova', 'PD'], ['teatro verdi padova', 'Padova', 'PD'], ['piazzola sul brenta', 'Piazzola sul Brenta', 'PD'],
+  ['villa contarini', 'Piazzola sul Brenta', 'PD'], ['teatro la fenice', 'Venezia', 'VE'], ['teatro malibran', 'Venezia', 'VE'], ['teatro goldoni', 'Venezia', 'VE'],
+  ['teatro toniolo', 'Mestre', 'VE'], ['parco san giuliano', 'Mestre', 'VE'], ['mestre', 'Mestre', 'VE'], ['jesolo', 'Jesolo', 'VE'], ['bibione', 'Bibione', 'VE'],
+  ['teatro olimpico', 'Vicenza', 'VI'], ['teatro comunale di vicenza', 'Vicenza', 'VI'], ['bassano del grappa', 'Bassano del Grappa', 'VI'],
+  ['teatro mario del monaco', 'Treviso', 'TV'], ['teatro comunale di treviso', 'Treviso', 'TV'], ['castello scaligero', 'Villafranca di Verona', 'VR'],
+  ['villafranca', 'Villafranca di Verona', 'VR'], ['teatro sociale di rovigo', 'Rovigo', 'RO'], ['teatro comunale di belluno', 'Belluno', 'BL'],
+];
+for (const [n, nome, p] of LOCALI_NOTI) COMUNI.push({ n: norm(n), nome, p, chiave: '' });
 COMUNI.sort((a, b) => b.n.length - a.n.length);
 const NOMI_NOTI = EVENTI.map(e => ({ n: norm(e[1]), c: norm(e[2]) }));
 
@@ -86,7 +98,7 @@ function trovaLuogo(t, provDefault, dove) {
 }
 
 /* ---------- HTML ---------- */
-const ENT = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', egrave: 'è', eacute: 'é', agrave: 'à', igrave: 'ì', ograve: 'ò', ugrave: 'ù', ndash: '–', mdash: '—', rsquo: '’', lsquo: '‘', laquo: '«', raquo: '»', hellip: '…' };
+const ENT = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', egrave: 'è', eacute: 'é', agrave: 'à', igrave: 'ì', ograve: 'ò', ugrave: 'ù', ndash: '–', mdash: '—', rsquo: '’', lsquo: '‘', ldquo: '“', rdquo: '”', bdquo: '„', euro: '€', deg: '°', laquo: '«', raquo: '»', hellip: '…' };
 const decode = s => s.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (x, c) => c[0] === '#' ? String.fromCodePoint(c[1].toLowerCase() === 'x' ? parseInt(c.slice(2), 16) : +c.slice(1)) : (ENT[c.toLowerCase()] ?? x));
 const testo = h => decode(h.replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
 const assoluto = (href, base) => { try { return new URL(decode(href), base).href; } catch { return base; } };
@@ -130,6 +142,22 @@ function daDeskline(html, base) {
     let href = m[1];
     if (/^#\//.test(href) || !href) href = base.split('#')[0] + href;
     out.push({ n, s: date[0].s, e: date[0].e, dove, url: assoluto(href, base), d: pick('event_offer-card__description-block'), strutturato: 1 });
+  }
+  return out;
+}
+
+// 1c) Schede eventi dei siti Citynews (PadovaOggi, VeronaSera, VeneziaToday, VicenzaToday, TrevisoToday…)
+function daCitynews(html, base) {
+  const out = [];
+  for (const m of html.matchAll(/<article class="c-card[\s\S]*?<\/article>/gi)) {
+    const card = m[0];
+    const tit = card.match(/<h[23][^>]*c-card__heading[^>]*>([\s\S]*?)<\/h[23]>/i);
+    const href = card.match(/href="([^"]*\/eventi\/[^"]+\.html)"/i);
+    const voci = [...card.matchAll(/<li[^>]*c-card__item-details[^>]*>([\s\S]*?)<\/li>/gi)].map(x => testo(x[1]));
+    if (!tit || !href || !voci.length) continue;
+    const date = trovaDate(voci[0].replace(/,/g, ' '));
+    if (!date.length) continue;
+    out.push({ n: testo(tit[1]), s: date[0].s, e: date[0].e, dove: voci.slice(1).join(' '), url: assoluto(href[1], base), d: '', strutturato: 1 });
   }
   return out;
 }
@@ -197,22 +225,25 @@ function giaNoto(n, c) {
 }
 const PAROLE_EVENTO = /sagra|festa|fiera|mercat|palio|festival|rievoca|carneval|mostra|raduno|motor|auto|moto|trofeo|rally|concert|notte|degusta|vino|enogastr|evento|manifestaz|tradizion|antica|antico|patrono|san |santa |madonna|torneo|corsa|camminata|marcia/i;
 
-function analizza(html, base, provDefault, night) {
+function analizza(html, base, provDefault, sez) {
+  const night = sez === 'N';
   const strutt = daJsonLd(html, base);
   const desk = /event_offer-card/.test(html) ? daDeskline(html, base) : [];
-  const grezzi = strutt.length ? strutt.map(x => Object.assign(x, { strutturato: 1 })) : desk.length ? desk : daTesto(html, base);
-  const fine = new Date(OGGI.getTime() + (night ? 60 : MAX_GIORNI) * 864e5);
+  const city = !desk.length && /c-card__heading/.test(html) ? daCitynews(html, base) : [];
+  const grezzi = strutt.length ? strutt.map(x => Object.assign(x, { strutturato: 1 })) : desk.length ? desk : city.length ? city : daTesto(html, base);
+  const fine = new Date(OGGI.getTime() + (night ? 60 : sez ? 400 : MAX_GIORNI) * 864e5);
   const visti = new Set(), out = [], links = linkPagina(html, base);
   for (const x of grezzi) {
     if (x.e < OGGI || x.s > fine) continue;
     if ((x.e - x.s) / 864e5 > 60) continue;              // periodi troppo lunghi: probabilmente non sono un evento
-    if (!night && !x.strutturato && !PAROLE_EVENTO.test(x.n + ' ' + x.d)) continue;
+    if (!sez && !x.strutturato && !PAROLE_EVENTO.test(x.n + ' ' + x.d)) continue;
     const luogo = trovaLuogo(x.dove + ' ' + x.n, provDefault, x.strutturato ? x.dove : '');
     if (luogo.p && !SIGLE.includes(luogo.p)) continue;
+    if ((sez === 'C' || sez === 'K') && !luogo.p) continue;   // cult e concerti: solo se si capisce che è in Veneto
     const id = 'w-' + norm(x.n).replace(/ /g, '-').slice(0, 50) + '-' + iso(x.s);
     if (visti.has(id)) continue; visti.add(id);
-    if (!night && giaNoto(x.n, luogo.c)) continue;
-    out.push({ id, n: x.n, c: luogo.c, p: luogo.p, ll: luogo.ll || undefined, s: iso(x.s), e: iso(x.e), url: x.url, d: x.d && x.d !== x.n ? x.d : '', fonte: base, t: night ? 'N' : undefined });
+    if (!sez && giaNoto(x.n, luogo.c)) continue;
+    out.push({ id, n: x.n, c: luogo.c, p: luogo.p, ll: luogo.ll || undefined, s: iso(x.s), e: iso(x.e), url: x.url, d: x.d && x.d !== x.n ? x.d : '', fonte: base, t: sez || undefined });
     const ultimo = out[out.length - 1];
     if (ultimo && ultimo.url === base) ultimo.url = linkPer(x.n, links, base) || base;
     if (out.length >= MAX_PER_SITO) break;
@@ -237,7 +268,7 @@ function leggiFonti() {
   const f = join(ROOT, 'fonti.txt');
   if (!existsSync(f)) return [];
   return readFileSync(f, 'utf8').split(/\r?\n/).map(r => r.trim()).filter(r => r && !r.startsWith('#'))
-    .map(r => { const [u, p, t, nome] = r.split('|').map(x => x.trim()); return { url: /^https?:/i.test(u) ? u : 'https://' + u, p: (p || '').toUpperCase(), night: /night|notte|locali/i.test(t || ''), nome: nome || '' }; })
+    .map(r => { const [u, p, t, nome] = r.split('|').map(x => x.trim()); const sez = /night|notte|locali/i.test(t || '') ? 'N' : /cult|teatr|cultura/i.test(t || '') ? 'C' : /concert/i.test(t || '') ? 'K' : ''; return { url: /^https?:/i.test(u) ? u : 'https://' + u, p: (p || '').toUpperCase(), night: sez === 'N', sez, nome: nome || '' }; })
     .filter(x => /^https?:\/\/[^/\s]+\.[a-z]{2,}/i.test(x.url));
 }
 
@@ -296,7 +327,7 @@ async function apriConBrowser(url) {
 async function main() {
   const arg = process.argv.slice(2);
   if (arg[0] === '--file') {
-    const res = analizza(readFileSync(arg[1], 'utf8'), 'https://esempio.it/', (arg[2] || '').toUpperCase(), arg[3] === 'night');
+    const res = analizza(readFileSync(arg[1], 'utf8'), 'https://esempio.it/', (arg[2] || '').toUpperCase(), { night: 'N', cult: 'C', concerti: 'K' }[arg[3]] || '');
     console.log(JSON.stringify(res, null, 1));
     return;
   }
@@ -308,18 +339,18 @@ async function main() {
   for (const f of fonti) {
     try {
       let ev = [], html = null, errore = null;
-      try { html = await scarica(f.url); ev = analizza(html, f.url, f.p, f.night); } catch (e) { errore = e; }
+      try { html = await scarica(f.url); ev = analizza(html, f.url, f.p, f.sez); } catch (e) { errore = e; }
       if (!ev.length) {
         const h2 = await apriConBrowser(f.url);
         if (h2) {
-          const ev2 = analizza(h2, f.url, f.p, f.night);
+          const ev2 = analizza(h2, f.url, f.p, f.sez);
           if (ev2.length) { ev = ev2; errore = null; }
           if (process.env.DEBUG_DIR && ev2.length < 3) { mkdirSync(process.env.DEBUG_DIR, { recursive: true }); writeFileSync(join(process.env.DEBUG_DIR, f.url.replace(/[^a-z0-9]+/gi, '_').slice(0, 80) + '.html'), h2); }
         }
       }
       if (errore && !ev.length) throw errore;
       if (f.nome) ev.forEach(e => { if (!e.c) e.c = f.nome; });
-      stato.push({ url: f.url, ok: 1, n: ev.length, night: f.night ? 1 : undefined });
+      stato.push({ url: f.url, ok: 1, n: ev.length, night: f.night ? 1 : undefined, sez: f.sez || undefined });
       for (const e of ev) if (!eventi.some(x => x.id === e.id)) eventi.push(e);
       console.log(`✓ ${f.url}: ${ev.length} eventi`);
     } catch (e) {
