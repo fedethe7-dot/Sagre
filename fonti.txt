@@ -6,12 +6,12 @@
 # Esempi:
 #   https://www.sitodellesagre.it/veneto/padova/ | PD
 #   https://www.sitodeilocali.it/padova/ | PD | night
-# Per i teatri e la cultura (teatro, gospel, classica, balletto) usa | cult, per i concerti | concerti:
-# quegli eventi vanno nelle sezioni Cult e Concerti, compaiono da soli e spariscono quando sono passati.
+# Per teatro e cultura (teatro, gospel, classica, balletto) usa | cult, per i concerti | concerti:
+# vanno nelle sezioni Cult e Concerti, compaiono da soli e spariscono quando sono passati.
 # Per il sito di un solo locale puoi aggiungere anche il nome:  link | | night | Nome del locale
 #
 # Dopo aver salvato, lo scanner gira da solo ogni lunedì mattina
-# (oppure subito: GitHub > Actions > "Scansiona siti eventi" > Run workflow).
+# (oppure subito: GitHub > Actions > "Scansiona siti eventi" > Run workflow, o dal pulsante nell'app «Controlla i siti adesso»).
 
 # bloccato (403): non si lascia leggere in automatico
 # https://www.provincia.padova.it/calendario-eventi-sul-territorio-padovano#/eventi | PD
@@ -27,9 +27,6 @@ https://specialmovida.com/movida-club/ | | night | Special Movida
 https://www.hierbasjesolo.it/eventi/eventi.aspx | VE | night | Hierbas Jesolo
 # Instagram chiede il login: lo scanner potrebbe non riuscire a leggerlo
 https://www.instagram.com/ilcervellonepadova_vi/ | | night | Il Cervellone
-https://tiamabistrot.it/eventi | PD | night | Tiama Bistrot
-https://www.villaitaliapadova.it/ | PD | night | Villa Italia
-https://www.animaclub.it/ | TV | night | Anima Club
 
 # --- Sagre ed eventi ---
 https://www.parcocollieuganei.com/eventi.php#/eventi | PD
@@ -39,6 +36,7 @@ https://jesolo.it/eventi/ | VE
 https://www.veneziatoday.it/eventi/ | VE
 https://www.vicenzatoday.it/eventi/ | VI
 https://www.visitdolomitibellunesi.com/it/eventi/calendario-eventi | BL
+# ultimo aggiornamento scanner: 2026-11-07
 
 # --- Concerti (sezione Concerti) ---
 https://zedlive.com/eventi/ | PD | concerti | Zed Live

@@ -19,7 +19,19 @@ jobs:
   scansiona:
     runs-on: ubuntu-latest
     steps:
+      # Il lunedì (e col pulsante) aggiorna il ramo che il sito pubblica; dopo una modifica a fonti.txt, quel ramo.
+      - name: Quale ramo aggiornare
+        id: ramo
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then r="${{ github.ref_name }}"
+          else r=$(gh api "repos/${{ github.repository }}/pages" --jq .source.branch 2>/dev/null || true); fi
+          echo "nome=${r:-${{ github.ref_name }}}" >> "$GITHUB_OUTPUT"
+          echo "Ramo: ${r:-${{ github.ref_name }}}"
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.ramo.outputs.nome }}
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -40,7 +52,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add proposte.js
           git commit -m "Eventi trovati sui siti ($(date +%Y-%m-%d))"
-          git push
+          git push origin HEAD:${{ steps.ramo.outputs.nome }}
           # aggiorna subito il sito pubblicato
           gh api -X POST "repos/${{ github.repository }}/pages/builds" || true
       - name: Pagine senza eventi (ramo debug-scanner, per controllo)

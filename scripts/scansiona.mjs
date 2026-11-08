@@ -1,4 +1,4 @@
-// Lunario delle Sagre - scanner dei siti di eventi.
+// Che si fa? - scanner dei siti di eventi.
 // Legge i link da fonti.txt, scarica ogni pagina, cerca eventi con le date
 // e scrive proposte.js: l'app li mostra in "Eventi trovati sui tuoi siti" da controllare.
 // Uso: node scripts/scansiona.mjs            (scarica i siti)
@@ -225,6 +225,88 @@ function giaNoto(n, c) {
 }
 const PAROLE_EVENTO = /sagra|festa|fiera|mercat|palio|festival|rievoca|carneval|mostra|raduno|motor|auto|moto|trofeo|rally|concert|notte|degusta|vino|enogastr|evento|manifestaz|tradizion|antica|antico|patrono|san |santa |madonna|torneo|corsa|camminata|marcia/i;
 
+/* ---------- titoli e link che NON sono eventi (titoli di pagina, categorie, luoghi) ---------- */
+const GENERICO = /^(prenota( ora)?|acquista|biglietti|scopri( di più)?|info|contatti|leggi|vedi|dettagli|eventi|eventi in programma|concerti|mostre|spettacoli|teatro|cinema|sagre|feste|fiere|serate|nightlife|discoteche|locali|programma|calendario|agenda|news|notizie|home|location|luoghi|categorie?|tutti gli eventi|altri eventi|prossimi eventi|in evidenza|weekend)$|eventi popolari|per il giorno|cosa fare|gli eventi nei|eventi nei locali|eventi a [a-z]+ (oggi|domani|questo)|tutti gli eventi|ti potrebbe|potrebbe interessarti|leggi anche|iscriviti|newsletter|cookie|seguici/i;
+const LINK_ELENCO = /\/(location|luogo|luoghi|tipo|tipi|categoria|categorie|category|categories|tag|tags|autore|author|page|pagina|search|cerca)\//i;
+const generico = n => GENERICO.test(String(n || '').trim().replace(/[:.!]+$/, ''));
+// toglie dalla descrizione titolo, date, "Vedi", "Leggi tutto"...
+function pulisciDesc(d, n, togliDate = true) {
+  let t = ' ' + decode(String(d || '').replace(/<[^>]+>/g, ' ')) + ' ';
+  if (n) t = t.split(n).join(' ');
+  if (togliDate) for (const x of trovaDate(t).reverse()) t = t.slice(0, x.pos) + ' ' + t.slice(x.pos + x.len);
+  t = t.replace(/\b(vedi|leggi tutto|leggi di più|scopri di più|continua a leggere|dettagli|più info|info)\s*(›|»|→|>)?\s*$/i, '')
+       .replace(togliDate ? /\b(lunedì|martedì|mercoledì|giovedì|venerdì|sabato|domenica)\b/gi : /^\b$/, ' ')
+       .replace(/\s+/g, ' ').replace(/^[\s\-–:,|·.]+|[\s\-–:,|·]+$/g, '').trim();
+  return t.length >= 12 ? t : '';
+}
+
+/* ---------- dentro la pagina dell'evento: titolo vero, descrizione, orario, luogo, prezzo ---------- */
+const meta = (h, k) => { const m = h.match(new RegExp('<meta[^>]+(?:property|name)=["\']' + k + '["\'][^>]*content=["\']([^"\']*)', 'i')) || h.match(new RegExp('<meta[^>]+content=["\']([^"\']*)["\'][^>]*(?:property|name)=["\']' + k + '["\']', 'i')); return m ? decode(m[1]).trim() : ''; };
+function senzaSito(n, url) {
+  const host = (() => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; } })();
+  const parole = host.split('.').filter(x => x.length > 3 && !/^(com|info|it)$/.test(x));
+  const m = n.match(/^(.{5,}?)\s*[|–—-]\s*([^|–—-]{2,45})$/);
+  if (m && (parole.some(p => norm(m[2]).replace(/ /g, '').includes(p.replace(/[^a-z0-9]/g, ''))) || /today|eventi|official|sito/i.test(m[2]))) return m[1].trim();
+  return n.trim();
+}
+function daPagina(html, url, ev) {
+  const out = {};
+  const ld = daJsonLd(html, url);
+  const a = norm(ev.n);
+  const j = ld.find(x => { const b = norm(x.n); return b && (b.includes(a.slice(0, 20)) || a.includes(b.slice(0, 20))); }) || (ld.length === 1 ? ld[0] : null);
+  const h1 = (html.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i) || [])[1];
+  const cand = [j && j.n, meta(html, 'og:title'), meta(html, 'twitter:title'), h1 && testo(h1), (html.match(/<title>([\s\S]*?)<\/title>/i) || [])[1]]
+    .map(x => x && senzaSito(testo(String(x)), url)).filter(x => x && x.length >= 4 && x.length <= 140 && !generico(x) && !trovaDate(x).some(d => d.pos === 0 && d.len > x.length - 3));
+  if (cand[0]) out.n = cand[0];
+  if (j && j.s && !isNaN(j.s)) { out.s = j.s; out.e = j.e; }
+  // testo principale della pagina
+  const corpo = (html.match(/<(article|main)\b[\s\S]*?<\/\1>/i) || [html])[0]
+    .replace(/<(script|style|noscript|svg|nav|footer|header|form|iframe|aside)[\s\S]*?<\/\1>/gi, ' ');
+  const paragrafi = [...corpo.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi)].map(m => testo(m[1])).filter(p => p.length > 50 && !/cookie|privacy|newsletter|iscriviti|copyright|©/i.test(p));
+  const desc = (j && j.d) || meta(html, 'og:description') || meta(html, 'description') || paragrafi[0] || '';
+  const lunga = paragrafi.slice(0, 3).join(' ');
+  const d = pulisciDesc(desc.length >= 60 ? desc : (lunga || desc), '', false);
+  if (d) out.d = d.slice(0, 320);
+  const tutto = testo(corpo).slice(0, 20000);
+  const ora = tutto.match(/\b(?:ore|alle|dalle|dalle ore|inizio|apertura porte|h\.?)\s*(\d{1,2})[:.](\d{2})/i) || tutto.match(/\b(?:ore|alle|dalle)\s+(\d{1,2})\b(?![:.\/\d])/i);
+  if (ora && +ora[1] < 24) out.h = pad(+ora[1]) + ':' + (ora[2] || '00');
+  const gratis = /(ingresso|entrata|partecipazione)\s*(:\s*)?(libero|gratuit[oa]|gratis)|evento gratuito|ad ingresso libero/i.test(tutto);
+  const prezzo = tutto.match(/(?:ingresso|biglietto|biglietti|prezzo|costo|intero|quota)[^.€\d]{0,25}((?:€|euro)\s?\d{1,3}(?:[,.]\d{2})?|\d{1,3}(?:[,.]\d{2})?\s?(?:€|euro)\b)/i);
+  if (gratis) out.pr = 'Ingresso libero'; else if (prezzo) out.pr = prezzo[1].replace(/euro/i, '€').replace(/\s+/g, ' ');
+  const v = (j && j.dove) || (tutto.match(/(?:presso|location|luogo|dove)\s*:\s*([^.;|]{3,60})/i) || [])[1];
+  if (v) out.v = v.trim().slice(0, 70);
+  const vv = v || ev.v;
+  const luogo = vv ? trovaLuogo(vv, ev.p) : trovaLuogo(tutto.slice(0, 1500), ev.p);
+  if (!luogo.c && vv) { const ul = vv.split(',').map(x => x.trim()).filter(x => x.length > 2 && !/\d/.test(x)).pop(); if (ul && ul.length < 30) luogo.c = ul; }
+  if (luogo.c && (!ev.c || ev.c === '')) { out.c = luogo.c; if (luogo.p) out.p = luogo.p; if (luogo.ll) out.ll = luogo.ll; }
+  return out;
+}
+async function arricchisci(lista, fonte, nome) {
+  const daFare = lista.filter(e => e.url && e.url.split('#')[0] !== fonte.split('#')[0] && !LINK_ELENCO.test(e.url)).slice(0, 30);
+  let i = 0;
+  const lavora = async () => {
+    while (i < daFare.length) {
+      const e = daFare[i++];
+      try {
+        const html = await scarica(e.url, 15000);
+        const x = daPagina(html, e.url, e);
+        if (x.n) e.n = x.n;
+        if (x.s && x.s >= OGGI) { e.s = iso(x.s); e.e = iso(x.e && x.e >= x.s ? x.e : x.s); }
+        for (const k of ['d', 'h', 'pr', 'v']) if (x[k]) e[k] = x[k];
+        if (x.c) { e.c = x.c; if (x.p) e.p = x.p; if (x.ll) e.ll = x.ll; }
+        e.x = 1; // letto dentro la pagina
+      } catch { /* pagina non raggiungibile: resta quello che si vede dall'elenco */ }
+    }
+  };
+  await Promise.all([lavora(), lavora(), lavora(), lavora()]);
+  // "07.11 LA STORIA DELLA MUSICA" / "SABATO 14 NOVEMBRE - MY FRIENDS" -> solo il nome
+  const MR = '(?:gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)';
+  const reData = new RegExp('^\\s*(?:(?:lun|mar|mer|gio|ven|sab|dom)[a-zì]*\\.?\\s*)?(?:\\d{1,2}[./]\\d{1,2}(?:[./]\\d{2,4})?|\\d{1,2}\\s+' + MR + '(?:\\s+\\d{4})?)\\s*[-–:,.]?\\s+', 'i');
+  for (const e of lista) { const r = e.n.replace(reData, ''); if (r !== e.n && r.length >= 6) { e.n = r.charAt(0).toUpperCase() + (r === r.toUpperCase() ? r.slice(1).toLowerCase() : r.slice(1)); } else if (e.n === e.n.toUpperCase() && e.n.length > 8) e.n = e.n.charAt(0) + e.n.slice(1).toLowerCase(); }
+  const stessa = e => !e.url || e.url.split('#')[0].replace(/\/$/, '') === fonte.split('#')[0].replace(/\/$/, '');
+  return lista.filter(e => !generico(e.n) && !(nome && stessa(e) && norm(e.n).includes(norm(nome))));
+}
+
 function analizza(html, base, provDefault, sez) {
   const night = sez === 'N';
   const strutt = daJsonLd(html, base);
@@ -236,6 +318,9 @@ function analizza(html, base, provDefault, sez) {
   for (const x of grezzi) {
     if (x.e < OGGI || x.s > fine) continue;
     if ((x.e - x.s) / 864e5 > 60) continue;              // periodi troppo lunghi: probabilmente non sono un evento
+    if (/^(lun|mar|mer|gio|ven|sab|dom)[a-zì]*\.?$/i.test(x.n.trim()) && x.d) { const r = pulisciDesc(String(x.d).replace(/^\s*(?:lun|mar|mer|gio|ven|sab|dom)[a-zì]*\.?\s+\d{1,2}\s+[a-z]+(?:\s+\d{4})?\s*[,:–-]?\s*/i, ''), '', false); if (r) { const t = r.split(/[.;]/)[0].slice(0, 90); x.n = t.charAt(0).toUpperCase() + t.slice(1); } } // titolo = solo il giorno: lo prendo dalla descrizione
+    if (generico(x.n) && (!x.url || x.url.split('#')[0] === base.split('#')[0] || LINK_ELENCO.test(x.url))) continue; // titoli di pagina o di sezione ("Eventi popolari a Padova…")
+    if (!x.strutturato && x.url && LINK_ELENCO.test(x.url)) continue; // link a categorie o luoghi, non a un evento
     if (!sez && !x.strutturato && !PAROLE_EVENTO.test(x.n + ' ' + x.d)) continue;
     const luogo = trovaLuogo(x.dove + ' ' + x.n, provDefault, x.strutturato ? x.dove : '');
     if (luogo.p && !SIGLE.includes(luogo.p)) continue;
@@ -243,7 +328,9 @@ function analizza(html, base, provDefault, sez) {
     const id = 'w-' + norm(x.n).replace(/ /g, '-').slice(0, 50) + '-' + iso(x.s);
     if (visti.has(id)) continue; visti.add(id);
     if (!sez && giaNoto(x.n, luogo.c)) continue;
-    out.push({ id, n: x.n, c: luogo.c, p: luogo.p, ll: luogo.ll || undefined, s: iso(x.s), e: iso(x.e), url: x.url, d: x.d && x.d !== x.n ? x.d : '', fonte: base, t: sez || undefined });
+    let dd = pulisciDesc(x.d && x.d !== x.n ? x.d : '', x.n), vv;
+    if (dd && dd.length < 90 && /\b(via|piazza|p\.zza|loc\.|località|sala|centro|chiesa|teatro|auditorium|parco|villa|palazzo|museo|location)\b/i.test(dd)) { vv = dd; dd = ''; } // era solo l'indirizzo
+    out.push({ id, n: x.n, c: luogo.c, p: luogo.p, ll: luogo.ll || undefined, s: iso(x.s), e: iso(x.e), url: x.url, d: dd, v: vv, fonte: base, t: sez || undefined });
     const ultimo = out[out.length - 1];
     if (ultimo && ultimo.url === base) ultimo.url = linkPer(x.n, links, base) || base;
     if (out.length >= MAX_PER_SITO) break;
@@ -252,10 +339,10 @@ function analizza(html, base, provDefault, sez) {
 }
 
 /* ---------- download ---------- */
-async function scarica(url) {
-  const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 25000);
+async function scarica(url, ms = 25000) {
+  const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), ms);
   try {
-    const r = await fetch(url, { signal: ctl.signal, redirect: 'follow', headers: { 'User-Agent': 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Mobile Safari/537.36 LunarioSagre/1.0', 'Accept-Language': 'it-IT,it;q=0.9' } });
+    const r = await fetch(url, { signal: ctl.signal, redirect: 'follow', headers: { 'User-Agent': 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Mobile Safari/537.36', 'Accept-Language': 'it-IT,it;q=0.9' } });
     if (!r.ok) throw new Error('il sito ha risposto ' + r.status);
     const buf = Buffer.from(await r.arrayBuffer());
     let cs = ((r.headers.get('content-type') || '').match(/charset=([\w-]+)/i) || [])[1];
@@ -326,6 +413,7 @@ async function apriConBrowser(url) {
 
 async function main() {
   const arg = process.argv.slice(2);
+  if (arg[0] === '--pagina') { console.log(JSON.stringify(daPagina(readFileSync(arg[1], 'utf8'), 'https://www.esempio.it/evento/', { n: arg[2] || '', p: '' }), null, 1)); return; }
   if (arg[0] === '--file') {
     const res = analizza(readFileSync(arg[1], 'utf8'), 'https://esempio.it/', (arg[2] || '').toUpperCase(), { night: 'N', cult: 'C', concerti: 'K' }[arg[3]] || '');
     console.log(JSON.stringify(res, null, 1));
@@ -348,11 +436,14 @@ async function main() {
           if (process.env.DEBUG_DIR && ev2.length < 3) { mkdirSync(process.env.DEBUG_DIR, { recursive: true }); writeFileSync(join(process.env.DEBUG_DIR, f.url.replace(/[^a-z0-9]+/gi, '_').slice(0, 80) + '.html'), h2); }
         }
       }
+      if (html && /robot challenge|captcha|are you a robot|access denied|attention required/i.test(html.slice(0, 5000)) && !ev.length) errore = new Error('il sito ha bloccato il controllo automatico');
+      if (!ev.length && !errore && (prima.eventi || []).some(x => x.fonte === f.url && x.e >= oggiIso)) errore = new Error('oggi non ha dato eventi: tengo quelli di prima');
       if (errore && !ev.length) throw errore;
-      if (f.nome) ev.forEach(e => { if (!e.c) e.c = f.nome; });
+      ev = await arricchisci(ev, f.url, f.nome);
+      if (f.nome) ev.forEach(e => { if (!e.v) e.v = f.nome; if (!e.c) e.c = f.nome; });
       stato.push({ url: f.url, ok: 1, n: ev.length, night: f.night ? 1 : undefined, sez: f.sez || undefined });
       for (const e of ev) if (!eventi.some(x => x.id === e.id)) eventi.push(e);
-      console.log(`✓ ${f.url}: ${ev.length} eventi`);
+      console.log(`✓ ${f.url}: ${ev.length} eventi (${ev.filter(e => e.x).length} letti nella loro pagina)`);
     } catch (e) {
       const vecchi = (prima.eventi || []).filter(x => x.fonte === f.url && x.e >= oggiIso);
       for (const x of vecchi) if (!eventi.some(y => y.id === x.id)) eventi.push(x);
