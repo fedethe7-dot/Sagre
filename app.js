@@ -1,4 +1,4 @@
-/* Che si fa? — v2 "assistente al centro".
+/* Citylife (ex Che si fa?) — v2 "assistente al centro".
    Dati: eventi.js (ricorrenze), luoghi.js (coordinate), proposte.js (scanner dei siti).
    Le preferenze restano nella stessa memoria della versione classica ('lunario-v1'), così preferiti ed eventi tuoi non si perdono. */
 (function(){
@@ -11,7 +11,7 @@ const GS=['dom','lun','mar','mer','gio','ven','sab'];
 const GL=['domenica','lunedì','martedì','mercoledì','giovedì','venerdì','sabato'];
 const ORD={1:'primo',2:'secondo',3:'terzo',4:'quarto',5:'quinto','-1':'ultimo'};
 const ORDF={1:'prima',2:'seconda',3:'terza',4:'quarta',5:'quinta','-1':'ultima'};
-const TIPI={S:'Sagra / fiera',F:'Festa e ricorrenza',G:'Grande evento',A:'Auto e moto',N:'Serata',W:'Dai siti'};
+const TIPI={S:'Sagra / fiera',F:'Festa e ricorrenza',G:'Grande evento',A:'Auto e moto',N:'Serata',W:'Dai siti',C:'Cult',K:'Concerto'};
 const TIPIP={S:'Sagre e fiere',F:'Feste',G:'Grandi eventi',A:'Auto e moto'};
 const DAY=864e5;
 const pad=n=>String(n).padStart(2,'0');
@@ -52,9 +52,10 @@ const ic=(n,s)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
 
 /* ---------- memoria ---------- */
 const K='lunario-v1';
-let st={sez:'sagre',tab:'prossimi',prov:'tutte',tipi:[],fav:[],mine:[],mese:null,ign:[]};
+let st={sez:'sagre',tab:'prossimi',prov:'tutte',tipi:[],fav:[],mine:[],mese:null,ign:[],artisti:null,soloMiei:false};
 try{Object.assign(st,JSON.parse(localStorage.getItem(K)||'{}'))}catch(e){}
 st.tipi=[...new Set((st.tipi||[]).map(x=>x==='M'?'S':x))];if(!Array.isArray(st.ign))st.ign=[];
+if(!Array.isArray(st.artisti))st.artisti=['Blue','Eros Ramazzotti','Jamiroquai','Anastacia','Lady Gaga','David Guetta','Pitbull'];
 st.v2=Object.assign({view:'chiedi',sez:'sagre',day:null,mode:'lista',look:{theme:'dark',acc:0,glass:1,anim:1,fs:16}},st.v2||{});
 const V=st.v2;
 function save(){try{localStorage.setItem(K,JSON.stringify(st))}catch(e){}}
@@ -118,7 +119,7 @@ const JUNK=/^(prenota( ora)?|acquista|biglietti|eventi|concerti|mostre|spettacol
 const junk=p=>JUNK.test(String(p.n||'').trim())||/\/(location|luogo|tipo|categoria|category|tag)\//i.test(p.url||'');
 function pending(){
   const mine=new Set(st.mine.map(m=>(m.n||'').toLowerCase()+'|'+((m.r&&(m.r.f||m.r.f2)||[])[0]||'')));
-  return (PROP.eventi||[]).filter(p=>p.t!=='N'&&!junk(p)&&!st.ign.includes(p.id)&&p.e>=iso(TODAY)&&!mine.has(p.n.toLowerCase()+'|'+p.s));
+  return (PROP.eventi||[]).filter(p=>!p.t&&!junk(p)&&!st.ign.includes(p.id)&&p.e>=iso(TODAY)&&!mine.has(p.n.toLowerCase()+'|'+p.s));
 }
 function passes(ev){
   if(st.prov!=='tutte'&&ev.p!==st.prov)return false;
@@ -150,12 +151,18 @@ function nightFisse(trovate){
 }
 /* tutte le cose da fare in un unico formato: ev (ricorrenze), web (trovati sui siti), night (serate) */
 const itEv=o=>({k:'ev',id:o.ev.id,n:o.ev.n,c:o.ev.c,p:o.ev.p,t:o.ev.t,s:o.s,e:o.e,d:o.ev.d||'',ev:o.ev,ll:placeOf(o.ev)});
-const itRaw=(p,k)=>({k,id:p.id,n:p.n,c:p.c||'',p:p.p||'',t:k==='night'?'N':'W',s:parseIso(p.s),e:parseIso(p.e),d:p.d||'',url:p.url,h:p.h||'',v:p.v||'',pr:p.pr||'',ll:p.ll||LUOGHI[(p.c||'')+'|'+(p.p||'')]||null,raw:p});
+const KT={night:'N',cult:'C',concerti:'K'};
+const itRaw=(p,k)=>({k,id:p.id,n:p.n,c:p.c||'',p:p.p||'',t:KT[k]||'W',s:parseIso(p.s),e:parseIso(p.e),d:p.d||'',url:p.url,h:p.h||'',v:p.v||'',pr:p.pr||'',ll:p.ll||LUOGHI[(p.c||'')+'|'+(p.p||'')]||null,raw:p});
 function nightItems(){
   const trovate=(PROP.eventi||[]).filter(p=>p.t==='N'&&!junk(p)&&p.e>=iso(TODAY));
   return trovate.concat(nightFisse(trovate)).map(p=>itRaw(p,'night'));
 }
 const webItems=()=>pending().map(p=>itRaw(p,'web'));
+/* Cult (teatro, gospel, classica) e Concerti: trovati dallo scanner sui siti segnati | cult o | concerti */
+const sezItems=(t,k)=>(PROP.eventi||[]).filter(p=>p.t===t&&!junk(p)&&p.e>=iso(TODAY)).map(p=>itRaw(p,k));
+const cultItems=()=>sezItems('C','cult');
+const artistaDi=it=>{const t=' '+norm(it.n+' '+(it.d||''))+' ';return st.artisti.find(a=>{const n=norm(a);return n&&t.includes(' '+n+' ')})||''};
+const concertiItems=()=>sezItems('K','concerti').map(x=>Object.assign(x,{art:artistaDi(x)}));
 const guessT=x=>{const t=norm(x.n+' '+(x.d||''));return /auto|moto|motor|rally|raduno/.test(t)?'A':/concert|mostra|museo|teatro|spettacol|festival|cinema|commedia|musical/.test(t)?'G':/sagra|fiera|mercat|degust|gastronom|vino|castagn|polenta|baccala/.test(t)?'S':/festa|palio|carneval|patrono|tradizion/.test(t)?'F':'G'};
 const extraD=x=>[x.d,x.v&&'Dove: '+x.v,x.h&&'Ore '+x.h,x.pr&&'Ingresso: '+x.pr].filter(Boolean).join(' · ');
 const inRange=(it,a,b)=>it.e>=a&&it.s<=b;
@@ -164,6 +171,8 @@ function itemsBetween(a,b,kinds,evList){
   if(kinds.ev)out=out.concat(occBetween(a,b,evList||EV).map(itEv));
   if(kinds.web)out=out.concat(webItems().filter(x=>inRange(x,a,b)));
   if(kinds.night)out=out.concat(nightItems().filter(x=>inRange(x,a,b)));
+  if(kinds.cult)out=out.concat(cultItems().filter(x=>inRange(x,a,b)));
+  if(kinds.concerti)out=out.concat(concertiItems().filter(x=>inRange(x,a,b)));
   return out.sort((x,y)=>x.s-y.s||x.n.localeCompare(y.n,'it'));
 }
 function weekendRange(){const g=TODAY.getDay();const fri=g===0?add(TODAY,-2):g===6?add(TODAY,-1):add(TODAY,5-g);return {s:g===0?TODAY:fri<TODAY?TODAY:fri,e:add(fri,2)}}
@@ -181,7 +190,7 @@ function card(it,dist){
   const dd=ongoing?`<small>fino</small><b>${it.e.getDate()}</b><small>${MS[it.e.getMonth()]}</small>`
     :`<small>${GS[it.s.getDay()]}</small><b>${it.s.getDate()}</b><small>${MS[it.s.getMonth()]}</small>`;
   const days=Math.round((it.e-it.s)/DAY)+1;
-  let tags=`<span class="tag t">${TIPI[it.t]}</span>`;
+  let tags=`<span class="tag t">${it.art?'★ '+esc(it.art):TIPI[it.t]}</span>`;
   if(dist!=null)tags=`<span class="tag">${dist} km</span>`+tags;
   if(it.h)tags=`<span class="tag">ore ${esc(it.h)}</span>`+tags;
   if(it.pr)tags+=`<span class="tag">${esc(it.pr)}</span>`;
@@ -240,10 +249,13 @@ function parse(text){
   if(has(/ (feste|ricorrenz\w*|palio|patrono|tradizion\w*|carneval\w*|rievocaz\w*|storic\w*) /)||(!night&&has(/ festa /)))T.push('F');
   if(has(/ (auto|moto|motor\w*|raduno|raduni|rally|epoca) /))T.push('A');
   const big=has(/ (concert\w*|grand\w* event\w*|spettacol\w*|teatro|mostra|mostre|festival|cultura|musica|museo|musei) /);
+  const cult=has(/ (teatr\w*|spettacol\w*|gospel|musical|balletto|lirica|opera|classica|commedia|cabaret|cultura|cult) /);
+  const conc=has(/ (concert\w*|live|cantant\w*|tour|musica) /)||st.artisti.some(a=>{const n=norm(a);return n&&t.includes(' '+n+' ')});
   if(big)T.push('G');
-  if(night&&!T.length)Q.kinds={night:1};
-  else if(T.length)Q.kinds={ev:1,web:big,night:night};
-  else Q.kinds={ev:1,web:1,night:1};
+  if((cult||conc)&&!T.filter(x=>x!=='G').length&&!night)Q.kinds={cult:cult,concerti:conc};
+  else if(night&&!T.length)Q.kinds={night:1};
+  else if(T.length)Q.kinds={ev:1,web:big,night:night,cult:cult,concerti:conc};
+  else Q.kinds={ev:1,web:1,night:1,cult:1,concerti:1};
   Q.tipi=T.length?T:null;
   const bw=[];
   if(has(/ (concert\w*|musica|live) /))bw.push('concert|live|musica|band|orchestra|jazz|coro|tour|dj|cantautor');
@@ -314,8 +326,10 @@ async function answer(text){
     if(after.length)return {html:`<p>${note?note+' ':''}${cap(per)}${dove} non ho trovato niente 😕</p><p>Ma poco dopo c'è qualcosa:</p>`,items:after};
     return {html:`<p>${note?note+' ':''}${cap(per)}${dove} non ho trovato niente.</p><p>Prova ad allargare la zona (es. «entro 50 km») o a cambiare giorno.</p>`};
   }
-  const n={ev:0,web:0,night:0};all.forEach(x=>n[x.k]++);
+  const n={ev:0,web:0,night:0,cult:0,concerti:0};all.forEach(x=>n[x.k]++);
   const parts=[];
+  if(n.concerti)parts.push(n.concerti+(n.concerti===1?' concerto':' concerti'));
+  if(n.cult)parts.push(n.cult+(n.cult===1?' spettacolo':' spettacoli'));
   if(n.night)parts.push(n.night+(n.night===1?' serata':' serate'));
   if(n.ev)parts.push(n.ev+(Q.tipi&&Q.tipi.length===1&&Q.tipi[0]==='S'?(n.ev===1?' sagra':' sagre'):(n.ev===1?' evento':' eventi')));
   if(n.web)parts.push(n.web+(n.web===1?' evento dai siti':' eventi dai siti'));
@@ -354,18 +368,21 @@ function vChiedi(){
   const nWe=itemsBetween(w.s,w.e,{ev:1}).length;
   const nNight=nightItems().filter(x=>x.s<=add(TODAY,6)).length;
   const nWeb=pending().length;
+  const nConc=concertiItems().filter(x=>x.s<=add(TODAY,30)).length,nCult=cultItems().filter(x=>x.s<=add(TODAY,13)).length;
   let h=`<div class="view">`;
   h+=empty?`<div class="hero"><h2>Che si fa ${greet()}</h2><p>Chiedimi cosa ti va di fare e ti dico dove andare.</p></div>`:'';
   h+=`<form class="ask glass" id="askForm" autocomplete="off"><textarea id="askIn" rows="1" placeholder="Es. stasera discoteca…" aria-label="Fai una domanda"></textarea>
     ${('webkitSpeechRecognition' in window||'SpeechRecognition' in window)?`<button type="button" class="send mic" data-act="mic" aria-label="Parla">${ic('mic')}</button>`:''}
     <button class="send go" aria-label="Chiedi">${ic('send')}</button></form>`;
-  const sugg=[['Stasera','cosa si fa stasera'],['Domani','cosa c\'è domani'],['Weekend','cosa c\'è questo weekend'],['Vicino a me','cosa c\'è vicino a me questo weekend'],['Discoteca','stasera discoteca'],['Sagre','sagre questo weekend'],['Concerti e mostre','concerti e mostre questa settimana'],['Auto e moto','raduni auto e moto questo mese']];
+  const sugg=[['Stasera','cosa si fa stasera'],['Domani','cosa c\'è domani'],['Weekend','cosa c\'è questo weekend'],['Vicino a me','cosa c\'è vicino a me questo weekend'],['Discoteca','stasera discoteca'],['Sagre','sagre questo weekend'],['Concerti','concerti questo mese'],['Teatro','teatro e spettacoli questa settimana'],['Auto e moto','raduni auto e moto questo mese']];
   h+=`<div class="chips">${sugg.map(([l,qq])=>`<button class="chip glass" data-act="ask" data-q="${esc(qq)}">${l}</button>`).join('')}</div>`;
   if(empty){
     h+=`<div class="lbl">In breve</div><div class="tiles">
       <button class="tile glass" data-act="ask" data-q="cosa si fa stasera" style="--tc:var(--acc)"><b>${nTonight}</b><span>Oggi e stasera</span><small>tutto quello che c'è</small></button>
       <button class="tile glass" data-act="ask" data-q="cosa c'è questo weekend" style="--tc:var(--t-S)"><b>${nWe}</b><span>${w.s<=TODAY?'Questo':'Prossimo'} weekend</span><small>sagre e feste</small></button>
       <button class="tile glass" data-act="ask" data-q="serate in discoteca questa settimana" style="--tc:var(--t-N)"><b>${nNight}</b><span>Serate</span><small>nei prossimi 7 giorni</small></button>
+      <button class="tile glass" data-act="go" data-v="concerti" style="--tc:var(--t-K)"><b>${nConc}</b><span>Concerti</span><small>nei prossimi 30 giorni</small></button>
+      <button class="tile glass" data-act="go" data-v="cult" style="--tc:var(--t-C)"><b>${nCult}</b><span>Cult</span><small>teatro e spettacoli in 2 settimane</small></button>
       <button class="tile glass" data-act="ask" data-q="cosa c'è vicino a me questa settimana" style="--tc:var(--t-W)"><b>${ic('locate','width:28px;height:28px')}</b><span>Vicino a te</span><small>entro 25 km</small></button></div>`;
     if(nWeb)h+=`<button class="banner glass" data-act="prop"><b>${nWeb}</b><span>Nuovi eventi dai tuoi siti<small>tocca per controllarli e aggiungerli</small></span>${ic('globe','width:22px;height:22px')}</button>`;
   }else{
@@ -380,14 +397,15 @@ function vChiedi(){
    AGENDA
    ===================================================================== */
 function vAgenda(){
-  const night=V.sez==='night';
+  const night=V.sez==='night',altra=V.sez==='cult'||V.sez==='concerti',solo=night||altra;
   const list=EV.filter(passes);
   const nf=(st.prov!=='tutte'?1:0)+st.tipi.length;
-  let h=`<div class="view"><div class="seg glass"><button data-act="sez" data-v="sagre" aria-pressed="${!night}">Sagre e feste</button><button data-act="sez" data-v="night" aria-pressed="${night}">Night</button></div>`;
-  h+=`<div class="bar"><label class="search glass">${ic('search','width:18px;height:18px;color:var(--mut)')}<input id="q" type="search" value="${esc(q)}" placeholder="${night?'Halloween, latino, locale…':'Baccalà, Arquà, palio…'}"></label>
-    ${night?'':`<button class="fbtn glass" data-act="filters">${ic('filter','width:18px;height:18px')}${nf?`<em>${nf}</em>`:''}</button>
+  let h=`<div class="view"><div class="seg glass">${[['sagre','Sagre'],['cult','Cult'],['concerti','Concerti'],['night','Night']].map(([k,l])=>`<button data-act="sez" data-v="${k}" aria-pressed="${(V.sez||'sagre')===k}">${l}</button>`).join('')}</div>`;
+  h+=`<div class="bar"><label class="search glass">${ic('search','width:18px;height:18px;color:var(--mut)')}<input id="q" type="search" value="${esc(q)}" placeholder="${night?'Halloween, latino, locale…':V.sez==='cult'?'Teatro, gospel, Fenice…':V.sez==='concerti'?'Artista, Arena, Geox…':'Baccalà, Arquà, palio…'}"></label>
+    ${solo?'':`<button class="fbtn glass" data-act="filters">${ic('filter','width:18px;height:18px')}${nf?`<em>${nf}</em>`:''}</button>
     <button class="fbtn glass" data-act="mode" aria-label="${V.mode==='mese'?'Vista lista':'Vista mese'}">${ic(V.mode==='mese'?'list':'grid','width:18px;height:18px')}</button>`}</div>`;
   if(night)return h+vNight()+'</div>';
+  if(altra)return h+vTrovati(V.sez)+'</div>';
   if(V.mode==='mese')return h+vMese(list)+'</div>';
   /* striscia dei giorni */
   const from=TODAY,to=add(TODAY,44);
@@ -437,6 +455,30 @@ function vMese(list){
   h+=fut.length?`<div class="list">${fut.map(x=>card(x)).join('')}</div>`:past.length?'':`<div class="empty">Nessun evento.</div>`;
   if(past.length)h+=`<details style="margin-top:14px"><summary class="note" style="margin:0;cursor:pointer;font-weight:700">Già passati (${past.length})</summary><div class="list" style="opacity:.6;margin-top:10px">${past.map(x=>card(x)).join('')}</div></details>`;
   return h;
+}
+function vTrovati(k){
+  const conc=k==='concerti';
+  let all=(conc?concertiItems():cultItems()).sort((a,b)=>a.s-b.s||a.n.localeCompare(b.n,'it'));
+  if(q)all=all.filter(p=>norm(q).split(/\s+/).every(w=>norm(p.n+' '+p.c+' '+p.d).includes(w)));
+  if(V.tprov&&V.tprov!=='tutte')all=all.filter(p=>p.p===V.tprov);
+  const miei=conc?all.filter(p=>p.art):[];
+  if(conc&&st.soloMiei)all=miei;
+  let h='';
+  if(conc){
+    h+=`<div class="artisti glass"><div class="art-head"><b>I tuoi artisti</b><button class="chip glass" data-act="soloMiei" aria-pressed="${st.soloMiei}">Solo i miei</button></div>
+      <div class="art-list">${st.artisti.map(a=>`<span class="art">${esc(a)}<button data-act="artDel" data-v="${esc(a)}" aria-label="Togli ${esc(a)}">×</button></span>`).join('')}</div>
+      <form class="art-add" data-form="art"><input id="artNuovo" placeholder="Aggiungi un artista" autocomplete="off"><button class="send go" aria-label="Aggiungi">+</button></form></div>`;
+    if(miei.length&&!st.soloMiei)h+=`<div class="sec">★ I tuoi artisti in Veneto</div><div class="list">${miei.map(x=>card(x)).join('')}</div>`;
+  }
+  h+=`<div class="chips" style="margin-top:12px">${[['tutte','Tutto il Veneto']].concat(REGIONI.Veneto.map(p=>[p,PROVINCE[p]])).map(([v,l])=>`<button class="chip glass" data-act="tprov" data-v="${v}" aria-pressed="${(V.tprov||'tutte')===v}">${l}</button>`).join('')}</div>`;
+  if(!all.length)return h+`<div class="empty" style="margin-top:14px">${conc&&st.soloMiei?'Nessun concerto dei tuoi artisti in Veneto per ora. La lista si aggiorna da sola ogni lunedì.':'Niente in arrivo per ora con questi filtri. La lista si aggiorna da sola ogni lunedì.'}</div>`;
+  let cur='';
+  for(const p of all){
+    const d=p.s<TODAY?TODAY:p.s,key=cap(MESI[d.getMonth()])+' '+d.getFullYear();
+    if(key!==cur){if(cur)h+='</div>';cur=key;h+=`<div class="sec">${key}</div><div class="list">`}
+    h+=card(p);
+  }
+  return h+`</div><p class="note">${conc?'Concerti presi in automatico dai siti delle arene e dei giornali locali':'Teatro, gospel e spettacoli presi in automatico dai siti'}${PROP.aggiornato?', aggiornati '+fdate(new Date(PROP.aggiornato)):''}: controlla sempre date e biglietti sul sito.</p>`;
 }
 function vNight(){
   let all=nightItems().sort((a,b)=>a.s-b.s||a.n.localeCompare(b.n,'it'));
@@ -554,7 +596,7 @@ const gcal=(n,c,p,d,s,e)=>'https://calendar.google.com/calendar/render?action=TE
 function icsFile(ev,o){
   const d=x=>iso(x).replace(/-/g,''),t=s=>String(s||'').replace(/([,;\\])/g,'\\$1').replace(/\n/g,'\\n');
   const now=new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d+/,'');
-  const txt=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Che si fa//IT','CALSCALE:GREGORIAN','BEGIN:VEVENT',
+  const txt=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Citylife//IT','CALSCALE:GREGORIAN','BEGIN:VEVENT',
     'UID:'+ev.id+'-'+d(o.s)+'@lunario-sagre','DTSTAMP:'+now,'DTSTART;VALUE=DATE:'+d(o.s),'DTEND;VALUE=DATE:'+d(add(o.e,1)),
     'SUMMARY:'+t(ev.n),'LOCATION:'+t(ev.c+', '+(PROVINCE[ev.p]||'')),'DESCRIPTION:'+t((ev.d||'')+(exact(ev)?'':' Date previste: verifica il programma ufficiale.')),
     'BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:'+t('Domani: '+ev.n),'TRIGGER:-PT6H','END:VALARM','END:VEVENT','END:VCALENDAR'].join('\r\n');
@@ -568,10 +610,11 @@ const gsearch=(n,c,Y)=>'https://www.google.com/search?q='+encodeURIComponent(n+'
 const gb=(icon,label,attrs,on)=>`<${attrs.startsWith('href')?'a':'button'} class="gbtn glass${on?' on':''}" ${attrs}>${ic(icon)}${label}</${attrs.startsWith('href')?'a':'button'}>`;
 function openItem(k,id,s){
   if(k==='ev')return openEvent(id,s);
-  const it=(k==='night'?nightItems():webItems()).find(x=>x.id===id);if(!it)return;
+  const it=(k==='night'?nightItems():k==='cult'?cultItems():k==='concerti'?concertiItems():webItems()).find(x=>x.id===id);if(!it)return;
+  const LBL={night:['Serata nei locali','Preso in automatico dal sito del locale: controlla orari e prezzi.'],cult:['Teatro e cultura','Preso in automatico dal sito: controlla date e biglietti.'],concerti:['Concerto','Preso in automatico dal sito: controlla date e biglietti.']}[k];
   openSheet(`<h2>${esc(it.n)}</h2><p class="place">${esc([it.v,it.c,it.p&&(PROVINCE[it.p]||it.p)].filter(Boolean).filter((x,i,A)=>A.indexOf(x)===i).join(' · '))}</p>
-  <div class="evhero" style="--tc:var(--t-${it.t})"><div class="k">${k==='night'?'Serata nei locali':'Trovato sui tuoi siti'}</div><div class="d">${frange(it.s,it.e)}${it.h?' · ore '+esc(it.h):''}</div>${it.pr?`<div class="s"><b>Ingresso:</b> ${esc(it.pr)}</div>`:''}
-  <div class="s">${k==='night'?'Preso in automatico dal sito del locale: controlla orari e prezzi.':'Trovato dallo scanner: controlla sul sito prima di andare.'}</div></div>
+  <div class="evhero" style="--tc:var(--t-${it.t})"><div class="k">${LBL?LBL[0]:'Trovato sui tuoi siti'}</div><div class="d">${frange(it.s,it.e)}${it.h?' · ore '+esc(it.h):''}</div>${it.pr?`<div class="s"><b>Ingresso:</b> ${esc(it.pr)}</div>`:''}
+  <div class="s">${LBL?LBL[1]:'Trovato dallo scanner: controlla sul sito prima di andare.'}</div></div>
   ${it.d?`<p class="desc">${esc(String(it.d).replace(/<[^>]+>/g,'').slice(0,300))}</p>`:''}
   <div class="grid">
     ${it.url?gb('ext','Apri il sito',`href="${esc(it.url)}" target="_blank" rel="noopener"`):''}
@@ -739,6 +782,10 @@ document.addEventListener('click',e=>{
   case 'lk-anim':V.look.anim=+v;save();applyLook();openLook();break;
   case 'lk-fs':V.look.fs=+v;save();applyLook();openLook();break;
   case 'sez':V.sez=v;q='';save();render();break;
+  case 'go':V.view='agenda';V.sez=v;q='';save();render();window.scrollTo(0,0);break;
+  case 'tprov':V.tprov=v;save();render();break;
+  case 'soloMiei':st.soloMiei=!st.soloMiei;save();render();break;
+  case 'artDel':st.artisti=st.artisti.filter(x=>x!==v);save();render();toast('Tolto: '+v);break;
   case 'day':V.day=V.day===v?null:v;save();render();break;
   case 'mday':V.day=V.day===v?null:v;save();render();break;
   case 'mode':V.mode=V.mode==='mese'?'lista':'mese';V.day=null;save();render();break;
@@ -794,7 +841,13 @@ let qt=0;document.addEventListener('input',e=>{if(e.target.id!=='q')return;clear
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#sheetWrap').hidden)closeSheet()});
 $('#lookBtn').innerHTML=ic('sliders','width:20px;height:20px');
 render();
-if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+document.addEventListener('submit',e=>{
+  if(e.target.dataset.form!=='art')return;e.preventDefault();
+  const n=(($('#artNuovo')||{}).value||'').trim();if(!n)return;
+  if(st.artisti.some(x=>x.toLowerCase()===n.toLowerCase())){toast('C\'è già');return}
+  st.artisti.push(n);save();render();toast('Aggiunto: '+n);
+});
+if('serviceWorker' in navigator&&!(window.CITYLIFE&&CITYLIFE.nativa))navigator.serviceWorker.register('sw.js').catch(()=>{});
 /* per le prove */
 window.__chesifa={parse,answer};
 })();

@@ -6,6 +6,8 @@
 # Esempi:
 #   https://www.sitodellesagre.it/veneto/padova/ | PD
 #   https://www.sitodeilocali.it/padova/ | PD | night
+# Per teatro e cultura (teatro, gospel, classica, balletto) usa | cult, per i concerti | concerti:
+# vanno nelle sezioni Cult e Concerti, compaiono da soli e spariscono quando sono passati.
 # Per il sito di un solo locale puoi aggiungere anche il nome:  link | | night | Nome del locale
 #
 # Dopo aver salvato, lo scanner gira da solo ogni lunedì mattina
@@ -35,3 +37,19 @@ https://www.veneziatoday.it/eventi/ | VE
 https://www.vicenzatoday.it/eventi/ | VI
 https://www.visitdolomitibellunesi.com/it/eventi/calendario-eventi | BL
 # ultimo aggiornamento scanner: 2026-11-07
+
+# --- Concerti (sezione Concerti) ---
+https://zedlive.com/eventi/ | PD | concerti | Zed Live
+https://www.padovaoggi.it/eventi/concerti/ | | concerti
+https://www.veronasera.it/eventi/concerti/ | | concerti
+https://www.veneziatoday.it/eventi/concerti/ | | concerti
+https://www.vicenzatoday.it/eventi/concerti/ | | concerti
+https://www.trevisotoday.it/eventi/concerti/ | | concerti
+
+# --- Teatro e cultura (sezione Cult) ---
+https://www.teatrolafenice.it/calendario/ | VE | cult | Teatro La Fenice
+https://www.padovaoggi.it/eventi/teatro/ | | cult
+https://www.veronasera.it/eventi/teatro/ | | cult
+https://www.veneziatoday.it/eventi/teatro/ | | cult
+https://www.vicenzatoday.it/eventi/teatro/ | | cult
+https://www.trevisotoday.it/eventi/teatro/ | | cult
