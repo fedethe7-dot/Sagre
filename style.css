@@ -1,17 +1,17 @@
-/* Che si fa? — v2 "assistente al centro". Vetro scuro, aurora sullo sfondo, barra fluttuante in basso. */
+/* Citylife — v2 "assistente al centro". Vetro scuro, aurora sullo sfondo, barra fluttuante in basso. */
 :root{
   --acc:#8B5CF6; --acc2:#EC4899;
   --bg:#07080D; --ink:#F4F5FA; --ink2:#B9BDD0; --mut:#7C8199;
   --glass:rgba(255,255,255,.06); --glass2:rgba(255,255,255,.10); --edge:rgba(255,255,255,.12);
   --blur:18px; --r:22px; --fs:16px; --spd:1;
-  --t-N:#F472B6; --t-S:#FB923C; --t-F:#A78BFA; --t-G:#60A5FA; --t-A:#F87171; --t-W:#34D399;
+  --t-N:#F472B6; --t-C:#22D3EE; --t-K:#C084FC; --t-S:#FB923C; --t-F:#A78BFA; --t-G:#60A5FA; --t-A:#F87171; --t-W:#34D399;
   --f-d:"Sora",system-ui,sans-serif; --f-b:"Manrope",system-ui,sans-serif;
   color-scheme:dark;
 }
 :root[data-theme="light"]{
   --bg:#EEF0F7; --ink:#14162A; --ink2:#3D4260; --mut:#6A6F8C;
   --glass:rgba(255,255,255,.62); --glass2:rgba(255,255,255,.85); --edge:rgba(20,22,42,.10);
-  --t-N:#DB2777; --t-S:#EA580C; --t-F:#7C3AED; --t-G:#2563EB; --t-A:#DC2626; --t-W:#059669;
+  --t-N:#DB2777; --t-C:#0E7490; --t-K:#7E22CE; --t-S:#EA580C; --t-F:#7C3AED; --t-G:#2563EB; --t-A:#DC2626; --t-W:#059669;
   color-scheme:light;
 }
 :root[data-glass="off"]{--blur:0px;--glass:rgba(255,255,255,.08);--glass2:rgba(255,255,255,.12)}
@@ -116,8 +116,8 @@ main{padding:0 16px calc(110px + env(safe-area-inset-bottom,0px));max-width:680p
 .more{align-self:flex-start;padding:9px 14px;border-radius:99px;font-weight:700;font-size:.88rem;color:var(--acc)}
 
 /* ---------- agenda ---------- */
-.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:18px;margin:8px 0 12px}
-.seg button{padding:10px;border-radius:14px;font-weight:800;color:var(--mut)}
+.seg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:4px;border-radius:18px;margin:8px 0 12px}
+.seg button{padding:10px 4px;font-size:.92rem;border-radius:14px;font-weight:800;color:var(--mut)}
 .seg button[aria-pressed="true"]{background:var(--glass2);color:var(--ink);box-shadow:0 2px 10px -4px rgba(0,0,0,.4)}
 .days{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:4px 16px 8px;scroll-snap-type:x proximity}
 .days::-webkit-scrollbar{display:none}
@@ -218,3 +218,18 @@ select.in option{color:#111}
 @media (prefers-reduced-motion:reduce){:root{--spd:0.01}}
 :root[data-anim="off"]{--spd:0.01}
 :root[data-anim="off"] .aurora i{animation:none}
+
+/* logo: icona dell'app */
+.logo.img{background:none;box-shadow:0 6px 20px -8px rgba(0,0,0,.8);overflow:hidden}
+.logo.img img{width:100%;height:100%;object-fit:cover;display:block}
+/* Concerti: i tuoi artisti */
+.artisti{border-radius:var(--r);padding:14px;margin:4px 0 6px}
+.art-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.art-head b{font-family:var(--f-d);font-weight:700;font-size:1.02rem}
+.art-head .chip[aria-pressed="true"]{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff}
+.art-list{display:flex;flex-wrap:wrap;gap:8px}
+.art{display:inline-flex;align-items:center;gap:2px;padding:6px 4px 6px 12px;border-radius:99px;background:color-mix(in srgb,var(--t-K) 20%,transparent);color:var(--ink);font-weight:700;font-size:.9rem}
+.art button{width:28px;height:28px;border-radius:50%;color:var(--ink2);font-size:1.1rem;line-height:1}
+.art-add{display:flex;gap:8px;margin-top:12px}
+.art-add input{flex:1;min-width:0;height:44px;padding:0 14px;border-radius:99px;border:1px solid var(--edge);background:var(--glass);color:var(--ink);font:inherit}
+.art-add .send{width:44px;height:44px;flex:none;font-size:1.4rem;font-weight:800}
