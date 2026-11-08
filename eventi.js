@@ -239,4 +239,13 @@ const EVENTI = [
    g = giorno della settimana (0 domenica, 1 lunedì … 6 sabato). Le date le calcola l'app. */
 const NIGHT_FISSE = [
 {id:'nf-berlino-karaoke',n:'Karaoke da Berlino',c:'Padova',p:'PD',g:1,url:'https://berlinopadova.it/',d:'Ogni lunedì sera'},
+{id:'nf-anima-venerdi',n:'Anima Club – Cena musicale',c:'Spresiano',p:'TV',g:5,url:'https://www.animaclub.it/',d:'Ogni venerdì, cena dalle 20:30 con video musicali e tribute band'},
+{id:'nf-anima-sabato',n:'Anima Club – Cena spettacolo',c:'Spresiano',p:'TV',g:6,url:'https://www.animaclub.it/',d:'Ogni sabato, cena dalle 20:30, show alle 22 e poi discoteca'},
+];
+
+/* Locali per l'aperitivo (sezione Aperitivo): non hanno date, è un elenco di posti dove andare. */
+const APERITIVI = [
+{id:'ap-piutrentanove',n:'Piùtrentanove',c:'Noventa Padovana',p:'PD',ind:'Via Risorgimento 12',url:'https://www.piutrentanove.info/',d:'Bistrot e lounge bar: cocktail con gin e vermouth, vini al calice e piatti da condividere.',o:'Tutti i giorni fino a tardi · lun–sab 10:30–2, dom 17:30–24'},
+{id:'ap-d4',n:'D4 Café',c:'Vigonza',p:'PD',ind:'Via A. Diaz 258',url:'https://www.d4cafe.it/',d:'Ristorante e wine bar (pesce e champagne): apericena con buffet servito al tavolo.',o:'Tutti i giorni · apericena 18–21'},
+{id:'ap-exforo',n:'Casa Exforo – Foreria',c:'Padova',p:'PD',ind:'Prato della Valle 70 (ex Foro Boario)',url:'https://www.exforo.it/',d:'Bistrot e wine bar dentro Casa Exforo, con ristorante e cocktail bar.',o:'mar–gio 18–24 · ven–sab 18–2 · dom 18–23'},
 ];

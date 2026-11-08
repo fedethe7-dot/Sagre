@@ -25,6 +25,10 @@ https://specialmovida.com/movida-club/ | | night | Special Movida
 https://www.hierbasjesolo.it/eventi/eventi.aspx | VE | night | Hierbas Jesolo
 # Instagram chiede il login: lo scanner potrebbe non riuscire a leggerlo
 https://www.instagram.com/ilcervellonepadova_vi/ | | night | Il Cervellone
+https://zedlive.com/eventi/ | | night | Zed Live
+https://tiamabistrot.it/eventi | PD | night | Tiama Bistrot
+https://www.villaitaliapadova.it/ | PD | night | Villa Italia
+https://www.animaclub.it/ | TV | night | Anima Club
 
 # --- Sagre ed eventi ---
 https://www.parcocollieuganei.com/eventi.php#/eventi | PD
